@@ -1,44 +1,81 @@
-# Web Drag and Drop Image Project
+# Basic Web Image Studio
 
-This project allows users to upload an image into a designated area on a web page by either dragging and dropping or clicking to open the file picker. Once selected, the image is displayed on the page.
+Basic Web Image Studio is a browser-based image editing workspace built with plain HTML, CSS, and JavaScript.  
+It supports drag-and-drop uploads, transform controls (move, scale, rotate, flip), filter actions, undo/redo history, and RGBA/brightness channel adjustments.
 
-## Project Structure
+## Features
+
+- Drag-and-drop or click-to-upload image import
+- Transform tools: move, scale, rotate, flip, and recenter
+- Filter tools: invert, grayscale, dark edges, beige, polarization, acrylic, median, sobel
+- Map generation tools: height map and normal map
+- Channel controls: red, green, blue, alpha, and brightness
+- Multi-step undo/redo history with progress indicators
+- Download/export of edited output
+
+## Workspace Overview
+
+This repository is intentionally lightweight and does not require a build step.
 
 ```
-web-drag-drop-image
-├── index.html           # HTML structure of the web page
-├── public
-│   └── styles.css       # Styles for the web page
-├── src
-│   └── main.js          # JavaScript for drag-and-drop and click-to-upload functionality
-└── README.md            # Project documentation
+basic-web-image-studio/
+├── index.html              # Main app shell and editor layout
+├── src/
+│   └── main.js             # Client-side editor logic and image processing
+├── public/
+│   ├── styles.css          # App styling and layout
+│   ├── favicon.ico
+│   ├── favicon-256.png
+│   └── img/
+│       └── background.png
+└── README.md
 ```
 
-## Getting Started
+## Running Locally
 
-To set up and run the application, follow these steps:
-
-1. **Clone the repository**:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/TheDoctorTTV/basic-web-image-studio.git
+   cd basic-web-image-studio
    ```
-   git clone <repository-url>
-   cd web-drag-drop-image
-   ```
+2. Open `index.html` in your browser.
+3. Drag and drop an image (or click the drop area) to start editing.
 
-2. **Open the `index.html` file**:
-   You can open the root `index.html` file in your web browser to view the application.
+## Supported Files and Limits
 
-3. **Upload an Image**:
-   You can either:
-   - Drag an image file from your computer and drop it into the marked area, or
-   - Click the upload area to open the file picker and select an image.
+- Accepted image types: `PNG`, `JPG/JPEG`, `WEBP`, `GIF`, `BMP`
+- Maximum upload size: `20 MB`
+- Maximum decoded image dimensions: `40 megapixels`
 
-   The image will be displayed once uploaded.
+These limits help keep the editor responsive and prevent browser memory issues.
 
-## Technologies Used
+## Development Notes
 
-- HTML
-- CSS
-- JavaScript
+- No framework or bundler is required.
+- The app runs fully client-side in the browser.
+- Main behavior lives in `src/main.js`; layout and UI are in `index.html` and `public/styles.css`.
+
+## Browser Support
+
+This project targets modern browsers with current JavaScript and Canvas support, including:
+
+- Chrome (latest)
+- Edge (latest)
+- Firefox (latest)
+- Safari (latest)
+
+## Open Source
+
+This is an open source project. Contributions, issues, and improvements are welcome.
+
+## Contributing
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes and test in browser.
+4. Commit with a clear message.
+5. Open a pull request describing what changed and why.
+
 
 ## License
 
