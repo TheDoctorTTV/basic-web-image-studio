@@ -41,6 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const blueSlider = document.getElementById('blue-slider');
   const alphaSlider = document.getElementById('alpha-slider');
   const brightnessSlider = document.getElementById('brightness-slider');
+  const redResetBtn = document.getElementById('red-reset-btn');
+  const greenResetBtn = document.getElementById('green-reset-btn');
+  const blueResetBtn = document.getElementById('blue-reset-btn');
+  const alphaResetBtn = document.getElementById('alpha-reset-btn');
+  const brightnessResetBtn = document.getElementById('brightness-reset-btn');
   const redValue = document.getElementById('red-value');
   const greenValue = document.getElementById('green-value');
   const blueValue = document.getElementById('blue-value');
@@ -129,6 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let activePreviewObjectUrl = null;
   let sliderHistoryArmed = true;
   let isFreshUploadLoad = false;
+  const DEFAULT_CHANNEL_VALUES = {
+    red: '255',
+    green: '255',
+    blue: '255',
+    alpha: '255',
+    brightness: '100'
+  };
 
   /**
    * Returns true if an image is currently active in the workspace.
@@ -137,6 +149,23 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function isImageLoaded() {
     return preview.style.display === 'block';
+  }
+
+  function resetChannelControls(applyToImage = false) {
+    redSlider.value = DEFAULT_CHANNEL_VALUES.red;
+    greenSlider.value = DEFAULT_CHANNEL_VALUES.green;
+    blueSlider.value = DEFAULT_CHANNEL_VALUES.blue;
+    alphaSlider.value = DEFAULT_CHANNEL_VALUES.alpha;
+    brightnessSlider.value = DEFAULT_CHANNEL_VALUES.brightness;
+    redValue.value = DEFAULT_CHANNEL_VALUES.red;
+    greenValue.value = DEFAULT_CHANNEL_VALUES.green;
+    blueValue.value = DEFAULT_CHANNEL_VALUES.blue;
+    alphaValue.value = DEFAULT_CHANNEL_VALUES.alpha;
+    brightnessValue.value = DEFAULT_CHANNEL_VALUES.brightness;
+
+    if (applyToImage && isImageLoaded()) {
+      applyRGBAMultipliers(preview);
+    }
   }
 
   document.addEventListener('dragover', (e) => {
@@ -232,16 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Reset channel controls to neutral values for each new upload.
-      redSlider.value = 255;
-      greenSlider.value = 255;
-      blueSlider.value = 255;
-      alphaSlider.value = 255;
-      brightnessSlider.value = 100;
-      redValue.textContent = '255';
-      greenValue.textContent = '255';
-      blueValue.textContent = '255';
-      alphaValue.textContent = '255';
-      brightnessValue.textContent = '100';
+      resetChannelControls(false);
 
       // Scale image to fit the current canvas workspace while maintaining aspect ratio
       const bounds = getCanvasBounds();
@@ -1197,6 +1217,43 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function setupSliderListeners() {
     const sliderList = [redSlider, greenSlider, blueSlider, alphaSlider, brightnessSlider];
+    const sliderValuePairs = [
+      {
+        slider: redSlider,
+        valueInput: redValue,
+        resetButton: redResetBtn,
+        defaultValue: DEFAULT_CHANNEL_VALUES.red,
+        apply: () => applyRGBAMultipliers(preview)
+      },
+      {
+        slider: greenSlider,
+        valueInput: greenValue,
+        resetButton: greenResetBtn,
+        defaultValue: DEFAULT_CHANNEL_VALUES.green,
+        apply: () => applyRGBAMultipliers(preview)
+      },
+      {
+        slider: blueSlider,
+        valueInput: blueValue,
+        resetButton: blueResetBtn,
+        defaultValue: DEFAULT_CHANNEL_VALUES.blue,
+        apply: () => applyRGBAMultipliers(preview)
+      },
+      {
+        slider: alphaSlider,
+        valueInput: alphaValue,
+        resetButton: alphaResetBtn,
+        defaultValue: DEFAULT_CHANNEL_VALUES.alpha,
+        apply: () => applyRGBAMultipliers(preview)
+      },
+      {
+        slider: brightnessSlider,
+        valueInput: brightnessValue,
+        resetButton: brightnessResetBtn,
+        defaultValue: DEFAULT_CHANNEL_VALUES.brightness,
+        apply: () => applyBrightness(preview, brightnessSlider.value)
+      }
+    ];
 
     function captureSliderHistoryIfNeeded() {
       if (isImageLoaded() && sliderHistoryArmed) {
@@ -1209,50 +1266,65 @@ document.addEventListener('DOMContentLoaded', () => {
       sliderHistoryArmed = true;
     }
 
+    function clampToControlRange(control, rawValue) {
+      const min = Number(control.min);
+      const max = Number(control.max);
+      const parsed = Number.parseInt(rawValue, 10);
+      if (!Number.isFinite(parsed)) return control.value;
+      return String(Math.min(max, Math.max(min, parsed)));
+    }
+
+    function applyValueInputChange(pair, allowEmpty = false) {
+      if (allowEmpty && pair.valueInput.value.trim() === '') return;
+      const nextValue = clampToControlRange(pair.slider, pair.valueInput.value);
+      pair.slider.value = nextValue;
+      pair.valueInput.value = nextValue;
+      if (isImageLoaded()) {
+        captureSliderHistoryIfNeeded();
+        pair.apply();
+      }
+    }
+
     for (const slider of sliderList) {
       slider.addEventListener('pointerdown', armSliderHistory);
       slider.addEventListener('change', armSliderHistory);
       slider.addEventListener('blur', armSliderHistory);
     }
 
-    redSlider.addEventListener('input', () => {
-      redValue.textContent = redSlider.value;
-      if (isImageLoaded()) {
-        captureSliderHistoryIfNeeded();
-        applyRGBAMultipliers(preview);
+    for (const pair of sliderValuePairs) {
+      pair.slider.addEventListener('input', () => {
+        pair.valueInput.value = pair.slider.value;
+        if (isImageLoaded()) {
+          captureSliderHistoryIfNeeded();
+          pair.apply();
+        }
+      });
+      pair.valueInput.addEventListener('focus', armSliderHistory);
+      pair.valueInput.addEventListener('pointerdown', armSliderHistory);
+      pair.valueInput.addEventListener('input', () => applyValueInputChange(pair, true));
+      pair.valueInput.addEventListener('change', () => {
+        applyValueInputChange(pair);
+        armSliderHistory();
+      });
+      pair.valueInput.addEventListener('blur', () => {
+        applyValueInputChange(pair);
+        armSliderHistory();
+      });
+      if (pair.resetButton) {
+        pair.resetButton.addEventListener('click', () => {
+          if (pair.slider.value === pair.defaultValue) return;
+          if (isImageLoaded()) {
+            saveImageState(preview);
+          }
+          pair.slider.value = pair.defaultValue;
+          pair.valueInput.value = pair.defaultValue;
+          if (isImageLoaded()) {
+            pair.apply();
+          }
+          sliderHistoryArmed = true;
+        });
       }
-    });
-
-    greenSlider.addEventListener('input', () => {
-      greenValue.textContent = greenSlider.value;
-      if (isImageLoaded()) {
-        captureSliderHistoryIfNeeded();
-        applyRGBAMultipliers(preview);
-      }
-    });
-
-    blueSlider.addEventListener('input', () => {
-      blueValue.textContent = blueSlider.value;
-      if (isImageLoaded()) {
-        captureSliderHistoryIfNeeded();
-        applyRGBAMultipliers(preview);
-      }
-    });
-
-    alphaSlider.addEventListener('input', () => {
-      alphaValue.textContent = alphaSlider.value;
-      if (isImageLoaded()) {
-        captureSliderHistoryIfNeeded();
-        applyRGBAMultipliers(preview);
-      }
-    });
-    brightnessSlider.addEventListener('input', () => {
-      brightnessValue.textContent = brightnessSlider.value;
-      if (isImageLoaded()) {
-        captureSliderHistoryIfNeeded();
-        applyBrightness(preview, brightnessSlider.value);
-      }
-    });
+    }
   }
 
   /**

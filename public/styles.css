@@ -553,12 +553,12 @@ button:disabled {
 
 #chanel-buttons {
   display: grid;
-  gap: 6px;
+  gap: 3px;
 }
 
 .slider-container {
   display: grid;
-  grid-template-columns: 66px 1fr 42px;
+  grid-template-columns: 78px 1fr 60px 26px;
   align-items: center;
   gap: 8px;
 }
@@ -575,6 +575,62 @@ button:disabled {
   color: #b8c8dc;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.channel-value-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid rgba(108, 129, 153, 0.45);
+  border-radius: 9px;
+  background: rgba(22, 29, 40, 0.92);
+  color: #c3d4e8;
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  padding: 0 8px;
+}
+
+.channel-value-input:focus {
+  outline: none;
+  border-color: #82c4ff;
+  box-shadow: 0 0 0 1px rgba(130, 196, 255, 0.22);
+}
+
+.channel-value-input::-webkit-outer-spin-button,
+.channel-value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.channel-reset-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(108, 129, 153, 0.45);
+  border-radius: 50%;
+  background: rgba(26, 35, 48, 0.9);
+  color: #a8bfd9;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, transform 0.14s ease, background 0.16s ease;
+}
+
+.channel-reset-btn:hover {
+  border-color: #82c4ff;
+  color: #d7ebff;
+  background: rgba(36, 49, 67, 0.95);
+  transform: translateY(-1px);
+}
+
+.channel-reset-btn:focus {
+  outline: none;
+  border-color: #82c4ff;
+  box-shadow: 0 0 0 1px rgba(130, 196, 255, 0.22);
 }
 
 #chanel-buttons input[type="range"] {

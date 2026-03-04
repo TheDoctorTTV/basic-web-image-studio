@@ -6,7 +6,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';">
     <meta http-equiv="Referrer-Policy" content="no-referrer">
     <title>Drag and Drop Image Upload</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="public/styles.css">
   </head>
   <body>
     <div class="editor-shell">
@@ -125,27 +125,32 @@
               <div class="slider-container">
                 <label for="red-slider">Red</label>
                 <input id="red-slider" type="range" min="0" max="255" value="255">
-                <span id="red-value">255</span>
+                <input id="red-value" class="channel-value-input" type="number" min="0" max="255" step="1" value="255" inputmode="numeric" aria-label="Red value">
+                <button id="red-reset-btn" class="channel-reset-btn" title="Reset red channel" aria-label="Reset red channel">&#x21BA;</button>
               </div>
               <div class="slider-container">
                 <label for="green-slider">Green</label>
                 <input id="green-slider" type="range" min="0" max="255" value="255">
-                <span id="green-value">255</span>
+                <input id="green-value" class="channel-value-input" type="number" min="0" max="255" step="1" value="255" inputmode="numeric" aria-label="Green value">
+                <button id="green-reset-btn" class="channel-reset-btn" title="Reset green channel" aria-label="Reset green channel">&#x21BA;</button>
               </div>
               <div class="slider-container">
                 <label for="blue-slider">Blue</label>
                 <input id="blue-slider" type="range" min="0" max="255" value="255">
-                <span id="blue-value">255</span>
+                <input id="blue-value" class="channel-value-input" type="number" min="0" max="255" step="1" value="255" inputmode="numeric" aria-label="Blue value">
+                <button id="blue-reset-btn" class="channel-reset-btn" title="Reset blue channel" aria-label="Reset blue channel">&#x21BA;</button>
               </div>
               <div class="slider-container">
                 <label for="alpha-slider">Alpha</label>
                 <input id="alpha-slider" type="range" min="0" max="255" value="255">
-                <span id="alpha-value">255</span>
+                <input id="alpha-value" class="channel-value-input" type="number" min="0" max="255" step="1" value="255" inputmode="numeric" aria-label="Alpha value">
+                <button id="alpha-reset-btn" class="channel-reset-btn" title="Reset alpha channel" aria-label="Reset alpha channel">&#x21BA;</button>
               </div>
               <div class="slider-container">
                 <label for="brightness-slider">Brightness</label>
                 <input id="brightness-slider" type="range" min="0" max="200" value="100">
-                <span id="brightness-value">100</span>
+                <input id="brightness-value" class="channel-value-input" type="number" min="0" max="200" step="1" value="100" inputmode="numeric" aria-label="Brightness value">
+                <button id="brightness-reset-btn" class="channel-reset-btn" title="Reset brightness" aria-label="Reset brightness">&#x21BA;</button>
               </div>
             </div>
           </div>
@@ -193,6 +198,6 @@
 
     <button id="show-btn">Show Menu</button>
 
-    <script src="../src/main.js" defer></script>
+    <script src="src/main.js" defer></script>
   </body>
 </html>

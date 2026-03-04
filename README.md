@@ -6,8 +6,8 @@ This project allows users to upload an image into a designated area on a web pag
 
 ```
 web-drag-drop-image
+├── index.html           # HTML structure of the web page
 ├── public
-│   ├── index.html       # HTML structure of the web page
 │   └── styles.css       # Styles for the web page
 ├── src
 │   └── main.js          # JavaScript for drag-and-drop and click-to-upload functionality
@@ -25,7 +25,7 @@ To set up and run the application, follow these steps:
    ```
 
 2. **Open the `index.html` file**:
-   You can open the `public/index.html` file in your web browser to view the application.
+   You can open the root `index.html` file in your web browser to view the application.
 
 3. **Upload an Image**:
    You can either:
