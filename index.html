@@ -6,6 +6,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';">
     <meta http-equiv="Referrer-Policy" content="no-referrer">
     <title>Drag and Drop Image Upload</title>
+    <link rel="icon" href="public/favicon.ico" sizes="any">
     <link rel="stylesheet" href="public/styles.css">
   </head>
   <body>
@@ -24,9 +25,29 @@
         <aside class="left-dock" aria-label="Tool tabs">
           <p class="dock-title">Tools</p>
           <div id="menu-buttons-group">
-            <button id="menu-btn" class="menu-button">Controls</button>
-            <button id="menu-btn-2" class="menu-button">Filters</button>
-            <button id="menu-btn-3" class="menu-button">Channels</button>
+            <button id="menu-btn" class="menu-button" aria-label="Controls">
+              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v4"></path>
+                <path d="M12 17v4"></path>
+                <path d="M3 12h4"></path>
+                <path d="M17 12h4"></path>
+                <path d="M8 8l8 8"></path>
+                <path d="M16 8l-8 8"></path>
+                <circle cx="12" cy="12" r="3.2"></circle>
+              </svg>
+            </button>
+            <button id="menu-btn-2" class="menu-button" aria-label="Filters">
+              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 5h18l-7 8v5l-4 1v-6z"></path>
+              </svg>
+            </button>
+            <button id="menu-btn-3" class="menu-button" aria-label="Channels">
+              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8" cy="12" r="4.5"></circle>
+                <circle cx="12" cy="12" r="4.5"></circle>
+                <circle cx="16" cy="12" r="4.5"></circle>
+              </svg>
+            </button>
           </div>
           <div class="shortcut-card">
             <p class="shortcut-title">Shortcuts</p>
@@ -51,22 +72,24 @@
         </section>
 
         <aside class="inspector" aria-label="Inspector panels">
-          <div id="side-menu" style="display:flex;">
+          <div id="side-menu" class="transform-panel" style="display:flex;">
             <button id="close-menu-btn" title="Hide controls">✕</button>
             <h3>Transform</h3>
             <div id="zoom-buttons">
               <button id="enlarge-btn" aria-label="Enlarge">+</button>
               <button id="shrink-btn" aria-label="Shrink">-</button>
             </div>
-            <div id="arrow-buttons">
-              <button id="up-btn" style="grid-column: 2;" aria-label="Move up">↑</button>
-              <button id="left-btn" style="grid-column: 1;" aria-label="Move left">←</button>
-              <button id="down-btn" style="grid-column: 2;" aria-label="Move down">↓</button>
-              <button id="right-btn" style="grid-column: 3;" aria-label="Move right">→</button>
+            <div id="arrow-buttons" aria-hidden="true">
+              <button id="up-btn" style="grid-column: 2;" aria-label="Move up"><span class="arrow-glyph">↑</span></button>
+              <button id="left-btn" style="grid-column: 1;" aria-label="Move left"><span class="arrow-glyph">←</span></button>
+              <button id="down-btn" style="grid-column: 2;" aria-label="Move down"><span class="arrow-glyph">↓</span></button>
+              <button id="right-btn" style="grid-column: 3;" aria-label="Move right"><span class="arrow-glyph">→</span></button>
             </div>
-            <button id="reset-btn">Recenter</button>
-            <button id="flip-btn">Flip</button>
-            <button id="rotate-btn">Rotate</button>
+            <div class="transform-action-buttons">
+              <button id="reset-btn" title="Recenter image" aria-label="Recenter image">⌖</button>
+              <button id="flip-btn" title="Flip image" aria-label="Flip image">⇆</button>
+              <button id="rotate-btn" title="Rotate image" aria-label="Rotate image">↻</button>
+            </div>
             <button id="quit-btn">Quit</button>
           </div>
 
@@ -165,35 +188,51 @@
     <div id="help-menu" style="display:none;">
       <button id="close-help-btn">✕</button>
       <h3>How to Use</h3>
-      <ul>
-        <li><h3>Controls:</h3></li>
-        <li><strong>Drag &amp; Drop:</strong> Drag an image into the center area to load it.</li>
-        <li><strong>Move Image:</strong> Click and drag the image, use arrow keys, or arrow buttons to reposition.</li>
-        <li><strong>Enlarge:</strong> Hold + button, press + key, scroll up, or use Enlarge button to increase size.</li>
-        <li><strong>Shrink:</strong> Hold - button, press - key, scroll down, or use Shrink button to decrease size.</li>
-        <li><strong>Flip:</strong> Press F key to mirror the image horizontally.</li>
-        <li><strong>Rotate:</strong> Press R key to rotate the image clockwise.</li>
-        <li><strong>Quit:</strong> Click Quit to exit the image and restart the page.</li>
-        <li><h3>Filters:</h3></li>
-        <li><strong>Reset:</strong> Click Reset to recenter image and return to original size.</li>
-        <li><strong>Invert:</strong> Click Invert to apply a reverse color effect to the image.</li>
-        <li><strong>Grayscale:</strong> Click Grayscale to apply a grayscale effect to the image.</li>
-        <li><strong>Dark Edges:</strong> Click Dark Edges to apply a filter to darken the image from the edges to the center.</li>
-        <li><strong>Beige:</strong> Click Beige to apply a beige tone filter to the image.</li>
-        <li><strong>Polarization:</strong> Click Polarization to removes glare, suppresses reflections from non-metallic surfaces, and increases color saturation</li>
-        <li><strong>Acrylic:</strong> Click Acrylic to give an acrylic like apearance to the image</li>
-        <li><strong>Median:</strong> Click Median to reduce noise specifically a "salt and pepper" effect on your image</li>
-        <li><strong>Sobel:</strong> Click Sobel to apply a filter to outline edges on the image highlighting regions of high contrast</li>
-        <li><h3>Transformation Filters:</h3></li>
-        <li><strong>Height:</strong> Create a hight map with the inputed image as a base</li>
-        <li><strong>Normal:</strong> Create a normal map with the input image as a base</li>
-        <li><h3>Channels:</h3></li>
-        <li><strong>Red:</strong> Use the Red slider to modify the red channel of the image</li>
-        <li><strong>Green:</strong> Use the Green slider to modify the green channel of the image</li>
-        <li><strong>Blue:</strong> Use the Blue slider to modify the blue channel of the image</li>
-        <li><strong>Alpha:</strong> Use the Alpha slider to modify the alpha value of the image</li>
-        <li><strong>Brightness:</strong> Use the Brightness slider to modify the brightness of the image</li>
-      </ul>
+      <p class="help-intro">Quick reference for upload, transform, filtering, and channel adjustments.</p>
+
+      <section class="help-section">
+        <h4>Controls</h4>
+        <ul class="help-list">
+          <li><strong>Upload:</strong> Drag and drop an image into the workspace or click to browse.</li>
+          <li><strong>Move:</strong> Drag the image or use arrow keys to reposition.</li>
+          <li><strong>Zoom:</strong> Use <code>+</code>/<code>-</code> buttons, keyboard keys, or mouse wheel.</li>
+          <li><strong>Flip:</strong> Press <code>F</code> or use the Flip control.</li>
+          <li><strong>Rotate:</strong> Press <code>R</code> or use the Rotate control.</li>
+          <li><strong>Quit:</strong> Resets the current session and clears the loaded image.</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h4>Filters</h4>
+        <ul class="help-list">
+          <li><strong>Undo / Redo:</strong> Step backward or forward through edit history.</li>
+          <li><strong>Invert:</strong> Inverts image colors.</li>
+          <li><strong>Grayscale:</strong> Converts to grayscale tones.</li>
+          <li><strong>Dark Edges:</strong> Darkens toward edges for a vignette-like result.</li>
+          <li><strong>Beige:</strong> Applies a warm beige tint.</li>
+          <li><strong>Polarization:</strong> Reduces glare and boosts perceived saturation.</li>
+          <li><strong>Acrylic:</strong> Applies a painterly acrylic-style look.</li>
+          <li><strong>Median:</strong> Reduces salt-and-pepper style noise.</li>
+          <li><strong>Sobel:</strong> Highlights edges and high-contrast boundaries.</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h4>Map Generation</h4>
+        <ul class="help-list">
+          <li><strong>Height:</strong> Builds a height map from the current image.</li>
+          <li><strong>Normal:</strong> Builds a normal map from the current image.</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h4>Channels</h4>
+        <ul class="help-list">
+          <li><strong>Red / Green / Blue:</strong> Adjust individual color channel intensity.</li>
+          <li><strong>Alpha:</strong> Adjust overall transparency.</li>
+          <li><strong>Brightness:</strong> Adjust overall luminance.</li>
+        </ul>
+      </section>
     </div>
 
     <button id="show-btn">Show Menu</button>

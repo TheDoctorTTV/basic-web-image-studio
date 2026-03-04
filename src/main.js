@@ -883,28 +883,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Position side menus so each sits 10px below the previous one.
-   * Computes positions dynamically using the menus' rendered heights.
+   * Ensure side-menu inline positioning is cleared so inspector cards are CSS-driven.
    */
   function updateSideMenuPositions() {
     try {
-      const gap = 10; // 10px gap between stacked menus
-      const primaryTop = 20; // primary menu top offset in px
-
       if (sideMenu) {
-        sideMenu.style.top = primaryTop + 'px';
+        sideMenu.style.top = '';
       }
 
-      let currentBottom = (sideMenu && sideMenu.offsetHeight) ? (primaryTop + sideMenu.offsetHeight) : (primaryTop + 0);
-
       if (sideMenu2) {
-        // place sideMenu2 10px below sideMenu
-        sideMenu2.style.top = (currentBottom + gap) + 'px';
-        currentBottom = currentBottom + gap + sideMenu2.offsetHeight;
+        sideMenu2.style.top = '';
       }
 
       if (sideMenu3) {
-        sideMenu3.style.top = (currentBottom + gap) + 'px';
+        sideMenu3.style.top = '';
       }
     } catch (err) {
       // silent fail if elements aren't available yet
@@ -912,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Recompute positions on resize to keep 10px spacing
+  // Recompute card layout on resize.
   window.addEventListener('resize', () => {
     updateSideMenuPositions();
     if (isImageLoaded()) {
