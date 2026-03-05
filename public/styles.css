@@ -27,11 +27,7 @@ body {
   color: var(--text-main);
   font-family: "Manrope", "Trebuchet MS", "Segoe UI", sans-serif;
   overflow: hidden;
-  /* Layered gradients create the app's atmospheric background depth. */
-  background:
-    radial-gradient(1200px 600px at -8% -12%, #374860 0%, transparent 64%),
-    radial-gradient(1000px 620px at 105% 8%, #2d4054 0%, transparent 55%),
-    linear-gradient(140deg, #1b212b, #131922 58%, #10151c);
+  background: #131922;
 }
 
 /* Styles for `body::before`. */
@@ -40,18 +36,14 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* Subtle grid overlay to mimic a design/editor workspace. */
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.024) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.024) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background: none;
 }
 
 /* Styles for `.editor-shell`. */
 .editor-shell {
   height: 100vh;
   display: grid;
-  grid-template-rows: 58px 1fr 32px;
+  grid-template-rows: 58px 1fr 46px;
   position: relative;
   z-index: 1;
   overflow: hidden;
@@ -146,7 +138,7 @@ body::before {
 /* Styles for `.editor-main`. */
 .editor-main {
   display: grid;
-  grid-template-columns: 170px 1fr 350px;
+  grid-template-columns: 84px 1fr 350px;
   gap: 12px;
   padding: 12px;
   min-height: 0;
@@ -164,15 +156,16 @@ body::before {
 
 /* Styles for `.left-dock`. */
 .left-dock {
-  padding: 12px;
+  padding: 10px 6px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Styles for `.dock-title`. */
 .dock-title {
+  align-self: flex-start;
   margin: 0;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -183,7 +176,15 @@ body::before {
 /* Styles for `#menu-buttons-group`. */
 #menu-buttons-group {
   display: grid;
-  gap: 8px;
+  gap: 7px;
+  justify-items: center;
+}
+
+/* Styles for `#grab-tools-group`. */
+#grab-tools-group {
+  display: grid;
+  gap: 7px;
+  justify-items: center;
 }
 
 /* Styles for `.workspace`. */
@@ -201,15 +202,7 @@ body::before {
   border: 1px solid rgba(181, 209, 250, 0.18);
   border-radius: 14px;
   overflow: hidden;
-  /* Checker + gradient layers simulate a transparency/work area surface. */
-  background:
-    linear-gradient(45deg, #2b3645 25%, transparent 25%),
-    linear-gradient(-45deg, #2b3645 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #2b3645 75%),
-    linear-gradient(-45deg, transparent 75%, #2b3645 75%),
-    linear-gradient(160deg, var(--bg-workspace-a), var(--bg-workspace-b));
-  background-size: 24px 24px, 24px 24px, 24px 24px, 24px 24px, 100% 100%;
-  background-position: 0 0, 0 12px, 12px -12px, -12px 0, 0 0;
+  background: #1b2431;
 }
 
 /* Styles for `.ruler-corner`. */
@@ -361,6 +354,14 @@ input:focus-visible {
   object-fit: contain;
   z-index: 10;
   box-shadow: none;
+  background:
+    linear-gradient(45deg, rgba(142, 173, 212, 0.26) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(142, 173, 212, 0.26) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(142, 173, 212, 0.26) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(142, 173, 212, 0.26) 75%),
+    rgba(31, 43, 59, 0.9);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   user-select: none;
   -webkit-user-drag: none;
   touch-action: none;
@@ -406,7 +407,8 @@ input:focus-visible {
 /* Styles for `#side-menu-3`. */
 #side-menu,
 #side-menu-2,
-#side-menu-3 {
+#side-menu-3,
+#side-menu-4 {
   position: relative;
   width: 100%;
   border: 1px solid var(--line-soft);
@@ -431,7 +433,8 @@ input:focus-visible {
 /* Styles for `#side-menu-3 h3`. */
 #side-menu h3,
 #side-menu-2 h3,
-#side-menu-3 h3 {
+#side-menu-3 h3,
+#side-menu-4 h3 {
   margin: 0;
   font-size: 13px;
   letter-spacing: 0.04em;
@@ -460,12 +463,14 @@ input:focus-visible {
 #menu-btn,
 #menu-btn-2,
 #menu-btn-3,
+#menu-btn-4,
 #show-btn,
 #ai-btn,
 #close-help-btn,
 #close-menu-btn,
 #close-menu-2-btn,
 #close-menu-3-btn,
+#close-menu-4-btn,
 #close-ai-btn,
 #enlarge-btn,
 #shrink-btn,
@@ -483,7 +488,9 @@ input:focus-visible {
 .file-menu-item,
 .edit-menu-item,
 #filter-buttons button,
-#transform-button button {
+#transform-button button,
+#layer-action-buttons button,
+.layer-mode-btn {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   background: linear-gradient(165deg, rgba(79, 95, 117, 0.95), rgba(52, 65, 83, 0.96));
@@ -579,8 +586,12 @@ input:focus-visible {
 /* Styles for `#menu-btn-3`. */
 #menu-btn,
 #menu-btn-2,
-#menu-btn-3 {
-  width: 100%;
+#menu-btn-3,
+#menu-btn-4 {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 12px;
   text-align: center;
   display: flex;
   align-items: center;
@@ -609,7 +620,8 @@ input:focus-visible {
 /* Styles for `#menu-btn-3.is-open`. */
 #menu-btn.is-open,
 #menu-btn-2.is-open,
-#menu-btn-3.is-open {
+#menu-btn-3.is-open,
+#menu-btn-4.is-open {
   border-color: var(--line-strong);
   background: linear-gradient(165deg, rgba(65, 123, 184, 0.95), rgba(38, 94, 151, 0.98));
 }
@@ -621,6 +633,7 @@ input:focus-visible {
 #menu-btn:hover,
 #menu-btn-2:hover,
 #menu-btn-3:hover,
+#menu-btn-4:hover,
 #show-btn:hover,
 #enlarge-btn:hover,
 #shrink-btn:hover,
@@ -636,7 +649,9 @@ input:focus-visible {
 .file-menu-item:hover,
 .edit-menu-item:hover,
 #filter-buttons button:hover,
-#transform-button button:hover {
+#transform-button button:hover,
+#layer-action-buttons button:hover,
+.layer-mode-btn:hover {
   border-color: var(--line-strong);
   transform: translateY(-1px);
 }
@@ -652,6 +667,7 @@ input:focus-visible {
 #close-menu-btn,
 #close-menu-2-btn,
 #close-menu-3-btn,
+#close-menu-4-btn,
 #close-ai-btn {
   width: 24px;
   height: 24px;
@@ -663,7 +679,8 @@ input:focus-visible {
 /* Styles for `#close-menu-3-btn`. */
 #close-menu-btn,
 #close-menu-2-btn,
-#close-menu-3-btn {
+#close-menu-3-btn,
+#close-menu-4-btn {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -927,6 +944,240 @@ button:disabled {
   gap: 8px;
 }
 
+/* Styles for `#layer-buttons`. */
+#layer-buttons {
+  display: grid;
+  gap: 8px;
+  min-height: 390px;
+}
+
+/* Styles for `.layer-settings-row`. */
+.layer-settings-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+/* Styles for `.layer-settings-row label`. */
+.layer-settings-row label {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Styles for `#layer-action-buttons`. */
+#layer-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 40px);
+  margin-left: 0;
+  gap: 8px;
+}
+
+/* Styles for `.layer-bottom-toolbar`. */
+.layer-bottom-toolbar {
+  margin: auto 0 0;
+  padding: 8px 7px;
+  border: 1px solid rgba(194, 214, 240, 0.12);
+  border-radius: 9px;
+  background: rgba(19, 28, 41, 0.36);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* Styles for `.layer-mode-btn`. */
+.layer-mode-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Styles for `.layer-mode-btn.is-active`. */
+.layer-mode-btn.is-active {
+  border-color: var(--line-strong);
+  background: linear-gradient(165deg, rgba(65, 123, 184, 0.95), rgba(38, 94, 151, 0.98));
+}
+
+/* Styles for `.layer-icon-btn`. */
+.layer-icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Styles for `.layer-icon-btn.layer-icon-btn-danger`. */
+.layer-icon-btn.layer-icon-btn-danger {
+  background: linear-gradient(165deg, rgba(129, 62, 79, 0.95), rgba(94, 45, 59, 0.97));
+  border-color: rgba(255, 190, 204, 0.22);
+}
+
+/* Styles for `.layer-action-icon`. */
+.layer-action-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Styles for `.layer-list`. */
+.layer-list {
+  border: 1px solid rgba(124, 150, 183, 0.34);
+  border-radius: 9px;
+  background: rgba(17, 24, 34, 0.72);
+  padding: 0;
+  display: grid;
+  gap: 0;
+  max-height: 240px;
+  min-height: 160px;
+  overflow-y: auto;
+}
+
+/* Styles for `.layer-list-item`. */
+.layer-list-item {
+  min-height: 52px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(31, 42, 58, 0.68);
+  color: #c8d7eb;
+  display: grid;
+  grid-template-columns: 28px 40px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+/* Styles for `.layer-list-item.is-active`. */
+.layer-list-item.is-active {
+  border-color: rgba(130, 196, 255, 0.75);
+  background: rgba(35, 50, 70, 0.82);
+}
+
+/* Styles for `.layer-list-item:last-child`. */
+.layer-list-item:last-child {
+  border-bottom: none;
+}
+
+/* Styles for `.layer-eye`. */
+.layer-eye {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(215, 230, 249, 0.85);
+  border-radius: 999px;
+  display: inline-flex;
+  justify-self: center;
+  background: radial-gradient(circle at 50% 50%, rgba(215, 230, 249, 0.95) 0 34%, transparent 35% 100%);
+}
+
+/* Styles for `.layer-list-item.is-hidden .layer-eye`. */
+.layer-list-item.is-hidden .layer-eye {
+  opacity: 0.4;
+  background: transparent;
+}
+
+/* Styles for `.layer-thumb`. */
+.layer-thumb {
+  width: 36px;
+  height: 30px;
+  border: 1px solid rgba(194, 214, 240, 0.35);
+  background: linear-gradient(45deg, rgba(142, 173, 212, 0.32) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(142, 173, 212, 0.32) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(142, 173, 212, 0.32) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(142, 173, 212, 0.32) 75%),
+    rgba(32, 43, 58, 0.92);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Styles for `.layer-chip`. */
+.layer-chip {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(114, 138, 168, 0.4);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: #e3e9f3;
+  background: rgba(49, 60, 75, 0.82);
+}
+
+/* Styles for `.layer-name`. */
+.layer-name {
+  font-size: 12px;
+  color: #d7e4f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* Styles for `.layer-visibility-dot`. */
+.layer-visibility-dot {
+  display: none;
+}
+
+/* Styles for `.layer-list-item.is-hidden .layer-visibility-dot`. */
+.layer-list-item.is-hidden .layer-visibility-dot {
+  display: none;
+}
+
+/* Styles for `.layer-blend-select`. */
+.layer-blend-select {
+  appearance: none;
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid rgba(108, 129, 153, 0.45);
+  border-radius: 9px;
+  background: rgba(22, 29, 40, 0.92);
+  color: #c3d4e8;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+/* Styles for `.layer-blend-select:focus`. */
+.layer-blend-select:focus {
+  outline: none;
+  border-color: #82c4ff;
+  box-shadow: 0 0 0 1px rgba(130, 196, 255, 0.22);
+}
+
+/* Styles for `.layer-status`. */
+.layer-status {
+  margin: 0;
+  color: #adb7c5;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* Styles for `#grab-tools-group .layer-mode-btn`. */
+#grab-tools-group .layer-mode-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
 /* Styles for `#chanel-buttons`. */
 #chanel-buttons {
   display: grid;
@@ -1047,40 +1298,14 @@ button:disabled {
   background: #82c4ff;
 }
 
-/* Styles for `.shortcut-card`. */
-.shortcut-card {
-  border: 1px solid var(--line-soft);
-  border-radius: 10px;
-  background: rgba(26, 33, 44, 0.8);
-  padding: 10px;
-}
-
-/* Styles for `.dock-footer`. */
-.dock-footer {
-  margin-top: auto;
-  display: grid;
-  gap: 10px;
-}
-
-/* Styles for `.dock-history-progress`. */
-.dock-history-progress {
-  padding: 10px;
-}
-
 /* Styles for `.shortcut-title`. */
 .shortcut-title {
-  margin: 0 0 7px;
+  margin: 0;
   color: #cfdbed;
   font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-}
-
-/* Styles for `.shortcut-card p`. */
-.shortcut-card p {
-  margin: 0 0 4px;
-  color: var(--text-muted);
-  font-size: 11px;
+  font-weight: 700;
 }
 
 /* Styles for `#help-menu`. */
@@ -1210,12 +1435,70 @@ button:disabled {
 .statusbar {
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 12px;
   border-top: 1px solid var(--line-soft);
   color: #91a4bb;
   font-size: 11px;
   letter-spacing: 0.02em;
   background: rgba(21, 28, 37, 0.75);
+  overflow: hidden;
+}
+
+/* Styles for `.statusbar-tip`. */
+.statusbar-tip {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Styles for `.statusbar-right`. */
+.statusbar-right {
+  margin-left: auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+/* Styles for `.status-history-progress`. */
+.status-history-progress {
+  width: min(700px, 56vw);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(18, 24, 33, 0.62);
+}
+
+/* Styles for `.status-history-progress .history-progress-head`. */
+.status-history-progress .history-progress-head {
+  font-size: 9px;
+}
+
+/* Styles for `.status-history-progress .history-progress-row`. */
+.status-history-progress .history-progress-row {
+  flex: 1 1 0;
+  min-width: 140px;
+}
+
+/* Styles for `.status-history-progress .history-progress-track`. */
+.status-history-progress .history-progress-track {
+  height: 6px;
+}
+
+/* Styles for `.shortcut-list`. */
+.shortcut-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 2px 10px;
+  color: var(--text-muted);
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 /* Styles for `#show-btn`. */
@@ -1231,7 +1514,7 @@ button:disabled {
 @media (max-width: 1440px) {
   /* Styles for `.editor-main`. */
   .editor-main {
-    grid-template-columns: 156px 1fr 320px;
+    grid-template-columns: 80px 1fr 320px;
     gap: 10px;
     padding: 10px;
   }
@@ -1241,7 +1524,7 @@ button:disabled {
 @media (max-width: 1280px) {
   /* Styles for `.editor-main`. */
   .editor-main {
-    grid-template-columns: 140px 1fr 288px;
+    grid-template-columns: 76px 1fr 288px;
     gap: 8px;
     padding: 8px;
   }
@@ -1256,5 +1539,22 @@ button:disabled {
   .inspector {
     padding: 8px;
     gap: 8px;
+  }
+
+  /* Styles for `.statusbar`. */
+  .statusbar {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+
+  /* Styles for `.status-history-progress`. */
+  .status-history-progress {
+    width: min(560px, 52vw);
+  }
+
+  /* Styles for `.shortcut-list`. */
+  .shortcut-list {
+    font-size: 9px;
+    gap: 2px 8px;
   }
 }

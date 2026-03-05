@@ -71,14 +71,14 @@
 
       <!-- Main 3-column editor region: left tools, center workspace, right inspector. -->
       <main class="editor-main">
-        <!-- Left dock: tab buttons + shortcut/history quick info. -->
+        <!-- Left dock: tab buttons. -->
         <aside class="left-dock" aria-label="Tool tabs">
           <p class="dock-title">Tools</p>
 
           <!-- Buttons that switch between inspector panels on the right side. -->
           <div id="menu-buttons-group">
             <!-- Transform/controls tab button (icon-only). -->
-            <button id="menu-btn" class="menu-button" aria-label="Controls">
+            <button id="menu-btn" class="menu-button" aria-label="Transform" title="Transform">
               <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3v4"></path>
                 <path d="M12 17v4"></path>
@@ -91,56 +91,49 @@
             </button>
 
             <!-- Filters tab button (funnel icon). -->
-            <button id="menu-btn-2" class="menu-button" aria-label="Filters">
+            <button id="menu-btn-2" class="menu-button" aria-label="Filters" title="Filters">
               <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 5h18l-7 8v5l-4 1v-6z"></path>
               </svg>
             </button>
 
             <!-- Channels tab button (RGB circles icon). -->
-            <button id="menu-btn-3" class="menu-button" aria-label="Channels">
+            <button id="menu-btn-3" class="menu-button" aria-label="Channels" title="Channels">
               <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="8" cy="12" r="4.5"></circle>
                 <circle cx="12" cy="12" r="4.5"></circle>
                 <circle cx="16" cy="12" r="4.5"></circle>
               </svg>
             </button>
+
+            <!-- Layers tab button (stacked sheets icon). -->
+            <button id="menu-btn-4" class="menu-button" aria-label="Layers" title="Layers">
+              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 7.5h12l-2 3H4z"></path>
+                <path d="M7 11.5h12l-2 3H5z"></path>
+                <path d="M8 15.5h12l-2 3H6z"></path>
+              </svg>
+            </button>
           </div>
 
-          <!-- Footer zone in the left dock for status cards. -->
-          <div class="dock-footer">
-            <!-- Undo/redo usage visualization (counts + progress bars). -->
-            <div class="history-progress dock-history-progress" aria-live="polite">
-              <div class="history-progress-row">
-                <div class="history-progress-head">
-                  <span>Undo</span>
-                  <span id="undo-progress-text">Used 0 / Free 200</span>
-                </div>
-                <div class="history-progress-track" role="presentation">
-                  <span id="undo-progress-fill" class="history-progress-fill"></span>
-                </div>
-              </div>
-              <div class="history-progress-row">
-                <div class="history-progress-head">
-                  <span>Redo</span>
-                  <span id="redo-progress-text">Used 0 / Free 200</span>
-                </div>
-                <div class="history-progress-track" role="presentation">
-                  <span id="redo-progress-fill" class="history-progress-fill redo-fill"></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Keyboard/mouse shortcut cheat sheet. -->
-            <div class="shortcut-card">
-              <p class="shortcut-title">Shortcuts</p>
-              <p>Move: Arrow keys</p>
-              <p>Scale: +/- or mouse wheel</p>
-              <p>Flip: F</p>
-              <p>Rotate: R</p>
-              <p>Undo: Alt+Z</p>
-              <p>Redo: Alt+Y</p>
-            </div>
+          <div id="grab-tools-group">
+            <button id="canvas-grab-btn" class="layer-mode-btn is-active" title="Canvas Grab Tool (Default)" aria-label="Canvas grab tool">
+              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v16"></path>
+                <path d="M4 12h16"></path>
+                <path d="m8 8 4-4 4 4"></path>
+                <path d="m8 16 4 4 4-4"></path>
+              </svg>
+            </button>
+            <button id="layer-grab-btn" class="layer-mode-btn" title="Layer Grab Tool" aria-label="Layer grab tool">
+              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="7" width="10" height="10" rx="2"></rect>
+                <path d="M9 3v4"></path>
+                <path d="M9 17v4"></path>
+                <path d="M3 11h4"></path>
+                <path d="M15 11h4"></path>
+              </svg>
+            </button>
           </div>
         </aside>
 
@@ -292,12 +285,116 @@
               </div>
             </div>
           </div>
+
+          <!-- Layer controls panel (basic two-layer blending workflow). -->
+          <div id="side-menu-4" style="display:flex;">
+            <!-- Collapses/hides this panel from view. -->
+            <button id="close-menu-4-btn" title="Hide layers">✕</button>
+            <h3>Layers</h3>
+            <div id="layer-buttons">
+              <a class="section-label">Layer Settings</a>
+
+              <div class="layer-settings-row">
+                <label for="layer-blend-mode">Mode</label>
+                <select id="layer-blend-mode" class="layer-blend-select" aria-label="Layer blend mode">
+                  <option value="normal">Normal</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="screen">Screen</option>
+                  <option value="overlay">Overlay</option>
+                </select>
+              </div>
+
+              <a class="section-label">Layer List</a>
+              <div id="layer-list" class="layer-list" aria-live="polite">
+                <div class="layer-list-item is-active">
+                  <span class="layer-eye"></span>
+                  <span class="layer-thumb"><span class="layer-chip">BG</span></span>
+                  <span class="layer-name">Background</span>
+                </div>
+              </div>
+
+              <a class="section-label">Layer Tools</a>
+              <div class="layer-bottom-toolbar">
+                <div id="layer-action-buttons">
+                  <button id="new-layer-btn" class="layer-icon-btn" title="New Layer" aria-label="New layer">
+                    <svg class="layer-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 12h16"></path>
+                      <path d="M12 4v16"></path>
+                    </svg>
+                  </button>
+                  <button id="duplicate-layer-btn" class="layer-icon-btn" title="Duplicate Base Layer" aria-label="Duplicate base layer">
+                    <svg class="layer-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="5" y="7" width="10" height="10" rx="2"></rect>
+                      <rect x="9" y="5" width="10" height="10" rx="2"></rect>
+                    </svg>
+                  </button>
+                  <button id="layer-toggle-btn" class="layer-icon-btn" title="Hide Top Layer" aria-label="Hide top layer">
+                    <svg class="layer-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.4-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.4 5.5-9.5 5.5-9.5-5.5-9.5-5.5z"></path>
+                      <circle cx="12" cy="12" r="2.8"></circle>
+                    </svg>
+                  </button>
+                  <button id="layer-merge-btn" class="layer-icon-btn" title="Merge Down" aria-label="Merge down">
+                    <svg class="layer-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7 6h10"></path>
+                      <path d="M7 10h10"></path>
+                      <path d="M12 10v8"></path>
+                      <path d="m9.2 15.8 2.8 2.8 2.8-2.8"></path>
+                    </svg>
+                  </button>
+                  <button id="layer-discard-btn" class="layer-icon-btn layer-icon-btn-danger" title="Discard Top Layer" aria-label="Discard top layer">
+                    <svg class="layer-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4.5 7h15"></path>
+                      <path d="M9.5 7V5h5v2"></path>
+                      <path d="M7 7l.9 11h8.2L17 7"></path>
+                      <path d="M10 11v5"></path>
+                      <path d="M14 11v5"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <p id="layer-status" class="layer-status">Top layer inactive</p>
+            </div>
+          </div>
         </aside>
       </main>
 
       <!-- Bottom status/tip bar. -->
       <footer class="statusbar">
-        <span>Tip: drag directly on the image to reposition quickly.</span>
+        <span class="statusbar-tip">Tip: drag directly on the image to reposition quickly.</span>
+        <div class="statusbar-right">
+          <!-- Undo/redo usage visualization (counts + progress bars). -->
+          <div class="history-progress status-history-progress" aria-live="polite">
+            <div class="history-progress-row">
+              <div class="history-progress-head">
+                <span>Undo</span>
+                <span id="undo-progress-text">Used 0 / Free 200</span>
+              </div>
+              <div class="history-progress-track" role="presentation">
+                <span id="undo-progress-fill" class="history-progress-fill"></span>
+              </div>
+            </div>
+            <div class="history-progress-row">
+              <div class="history-progress-head">
+                <span>Redo</span>
+                <span id="redo-progress-text">Used 0 / Free 200</span>
+              </div>
+              <div class="history-progress-track" role="presentation">
+                <span id="redo-progress-fill" class="history-progress-fill redo-fill"></span>
+              </div>
+            </div>
+          </div>
+          <!-- Keyboard/mouse shortcut cheat sheet. -->
+          <div class="shortcut-list">
+            <span class="shortcut-title">Shortcuts</span>
+            <span>Move: Arrow keys</span>
+            <span>Scale: +/- or wheel</span>
+            <span>Flip: F</span>
+            <span>Rotate: R</span>
+            <span>Undo: Alt+Z</span>
+            <span>Redo: Alt+Y</span>
+          </div>
+        </div>
       </footer>
     </div>
 
@@ -353,6 +450,21 @@
           <li><strong>Red / Green / Blue:</strong> Adjust individual color channel intensity.</li>
           <li><strong>Alpha:</strong> Adjust overall transparency.</li>
           <li><strong>Brightness:</strong> Adjust overall luminance.</li>
+        </ul>
+      </section>
+
+      <!-- Layer controls help section. -->
+      <section class="help-section">
+        <h4>Layers</h4>
+        <ul class="help-list">
+          <li><strong>New Layer:</strong> Creates a blank top layer above the current image.</li>
+          <li><strong>Canvas Grab Tool:</strong> Drags the whole canvas view (default).</li>
+          <li><strong>Layer Grab Tool:</strong> Drags only the selected layer in the layer list.</li>
+          <li><strong>Duplicate Base:</strong> Creates a top layer from the current image.</li>
+          <li><strong>Hide Top Layer:</strong> Toggles top layer visibility.</li>
+          <li><strong>Mode:</strong> Controls blend mode for the selected layer.</li>
+          <li><strong>Merge Down:</strong> Bakes the current blend into a single image.</li>
+          <li><strong>Discard Layer:</strong> Removes the top layer and restores base image.</li>
         </ul>
       </section>
     </div>

@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuBtn3 = document.getElementById('menu-btn-3');
   const sideMenu3 = document.getElementById('side-menu-3');
   const closeMenu3Btn = document.getElementById('close-menu-3-btn');
+  const menuBtn4 = document.getElementById('menu-btn-4');
+  const sideMenu4 = document.getElementById('side-menu-4');
+  const closeMenu4Btn = document.getElementById('close-menu-4-btn');
   const invertBtn = document.getElementById('invert-btn');
   const grayscaleBtn = document.getElementById('grayscale-btn');
   const brightnessBtn = document.getElementById('brightness-btn');
@@ -64,6 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const redoProgressFill = document.getElementById('redo-progress-fill');
   const undoProgressText = document.getElementById('undo-progress-text');
   const redoProgressText = document.getElementById('redo-progress-text');
+  const duplicateLayerBtn = document.getElementById('duplicate-layer-btn');
+  const newLayerBtn = document.getElementById('new-layer-btn');
+  const layerToggleBtn = document.getElementById('layer-toggle-btn');
+  const layerMergeBtn = document.getElementById('layer-merge-btn');
+  const layerDiscardBtn = document.getElementById('layer-discard-btn');
+  const layerOpacitySlider = document.getElementById('layer-opacity-slider');
+  const layerOpacityValue = document.getElementById('layer-opacity-value');
+  const layerBlendMode = document.getElementById('layer-blend-mode');
+  const layerStatus = document.getElementById('layer-status');
+  const layerList = document.getElementById('layer-list');
+  const canvasGrabBtn = document.getElementById('canvas-grab-btn');
+  const layerGrabBtn = document.getElementById('layer-grab-btn');
 
   const downloadBtn = document.getElementById('download-btn');
   const quitBtn = document.getElementById('quit-btn');
@@ -101,7 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
     blue: null,
     alpha: null,
     width: 0,
-    height: 0
+    height: 0,
+    sourceKey: null
   };
 
   // Multi-step history stacks for undo/redo
@@ -125,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let rotation = 0;
   const moveStep = 2;
   const sizeStep = 10;
+  const layerScaleStep = 0.03;
   const FIT_PADDING = 8;
   const RULER_SIZE = 26;
   const RULER_TARGET_MAJOR_SPACING = 90;
@@ -134,10 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let dragStartY = 0;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
+  let dragLayerStartX = 0;
+  let dragLayerStartY = 0;
+  let dragLayerId = null;
+  let activeGrabMode = 'canvas';
   let activeKeys = {};
+  let transformHistoryArmed = true;
   let animationFrameId = null;
   let activePreviewObjectUrl = null;
   let sliderHistoryArmed = true;
+  let channelApplyToken = 0;
   let isFreshUploadLoad = false;
   const DEFAULT_CHANNEL_VALUES = {
     red: '255',
@@ -146,6 +169,29 @@ document.addEventListener('DOMContentLoaded', () => {
     alpha: '255',
     brightness: '100'
   };
+  const BLEND_MODE_MAP = {
+    normal: 'source-over',
+    multiply: 'multiply',
+    screen: 'screen',
+    overlay: 'overlay'
+  };
+  const TOOL_VISIBILITY_STORAGE_KEY = 'imageStudio.toolVisibility.v1';
+  const GRAB_MODE_STORAGE_KEY = 'imageStudio.grabMode.v1';
+  const DEFAULT_TOOL_VISIBILITY = {
+    transform: true,
+    filters: true,
+    channels: true,
+    layers: true
+  };
+  const layerState = {
+    layers: [],
+    selectedLayerId: null,
+    renderToken: 0,
+    nextLayerId: 1,
+    canvasWidth: 0,
+    canvasHeight: 0
+  };
+  let nextLayerNumber = 1;
 
   /**
    * Returns true if an image is currently active in the workspace.
@@ -173,6 +219,123 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function readStorageJson(key, fallbackValue) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallbackValue;
+      return JSON.parse(raw);
+    } catch (err) {
+      return fallbackValue;
+    }
+  }
+
+  function writeStorageJson(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      // Ignore persistence failures (private mode/quota/security policy).
+    }
+  }
+
+  function readStorageString(key, fallbackValue) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw || fallbackValue;
+    } catch (err) {
+      return fallbackValue;
+    }
+  }
+
+  function writeStorageString(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (err) {
+      // Ignore persistence failures (private mode/quota/security policy).
+    }
+  }
+
+  function isPanelVisible(panel) {
+    if (!panel) return false;
+    return panel.style.display !== 'none';
+  }
+
+  function setPanelVisibility(panel, isVisible, shownDisplay = 'flex') {
+    if (!panel) return;
+    panel.style.display = isVisible ? shownDisplay : 'none';
+  }
+
+  function getToolVisibilityPreferences() {
+    const stored = readStorageJson(TOOL_VISIBILITY_STORAGE_KEY, DEFAULT_TOOL_VISIBILITY);
+    return {
+      transform: stored && typeof stored.transform === 'boolean' ? stored.transform : DEFAULT_TOOL_VISIBILITY.transform,
+      filters: stored && typeof stored.filters === 'boolean' ? stored.filters : DEFAULT_TOOL_VISIBILITY.filters,
+      channels: stored && typeof stored.channels === 'boolean' ? stored.channels : DEFAULT_TOOL_VISIBILITY.channels,
+      layers: stored && typeof stored.layers === 'boolean' ? stored.layers : DEFAULT_TOOL_VISIBILITY.layers
+    };
+  }
+
+  function saveToolVisibilityPreferences() {
+    writeStorageJson(TOOL_VISIBILITY_STORAGE_KEY, {
+      transform: isPanelVisible(sideMenu),
+      filters: isPanelVisible(sideMenu2),
+      channels: isPanelVisible(sideMenu3),
+      layers: isPanelVisible(sideMenu4)
+    });
+  }
+
+  function applyStoredToolVisibilityPreferences() {
+    const prefs = getToolVisibilityPreferences();
+    setPanelVisibility(sideMenu, prefs.transform, 'flex');
+    setPanelVisibility(sideMenu2, prefs.filters, 'flex');
+    setPanelVisibility(sideMenu3, prefs.channels, 'flex');
+    setPanelVisibility(sideMenu4, prefs.layers, 'flex');
+  }
+
+  function clearChannelDataCache() {
+    channelData.red = null;
+    channelData.green = null;
+    channelData.blue = null;
+    channelData.alpha = null;
+    channelData.width = 0;
+    channelData.height = 0;
+    channelData.sourceKey = null;
+  }
+
+  function extractChannelDataFromImage(imageElement, sourceKey) {
+    const sourceWidth = imageElement.naturalWidth || imageElement.width;
+    const sourceHeight = imageElement.naturalHeight || imageElement.height;
+    if (!sourceWidth || !sourceHeight) {
+      clearChannelDataCache();
+      return false;
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = sourceWidth;
+    canvas.height = sourceHeight;
+    ctx.drawImage(imageElement, 0, 0, sourceWidth, sourceHeight);
+    const imageData = ctx.getImageData(0, 0, sourceWidth, sourceHeight);
+    const data = imageData.data;
+    const pixelCount = sourceWidth * sourceHeight;
+
+    channelData.red = new Uint8ClampedArray(pixelCount);
+    channelData.green = new Uint8ClampedArray(pixelCount);
+    channelData.blue = new Uint8ClampedArray(pixelCount);
+    channelData.alpha = new Uint8ClampedArray(pixelCount);
+    channelData.width = sourceWidth;
+    channelData.height = sourceHeight;
+    channelData.sourceKey = sourceKey || null;
+
+    for (let i = 0; i < pixelCount; i++) {
+      const idx = i * 4;
+      channelData.red[i] = data[idx];
+      channelData.green[i] = data[idx + 1];
+      channelData.blue[i] = data[idx + 2];
+      channelData.alpha[i] = data[idx + 3];
+    }
+    return true;
+  }
+
   document.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -193,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dropArea.classList.remove('dragover');
   });
 
-  function handleImageFile(file) {
+  function handleImageFile(file, options = {}) {
     // Basic file gatekeeping before creating object URLs.
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -204,6 +367,11 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Image file is too large. Please use an image smaller than 20 MB.');
       return;
     }
+    if (options.appendAsLayer && isImageLoaded()) {
+      addImageAsLayer(file);
+      return;
+    }
+    resetLayerState();
     if (activePreviewObjectUrl) {
       URL.revokeObjectURL(activePreviewObjectUrl);
       activePreviewObjectUrl = null;
@@ -228,6 +396,11 @@ document.addEventListener('DOMContentLoaded', () => {
         isApplyingRGBA = false;
         return;
       }
+      // Layer composite renders also update preview.src; skip upload-style
+      // channel/control re-initialization for those internal refreshes.
+      if (isLayerSessionActive()) {
+        return;
+      }
 
       originalWidth = preview.naturalWidth;
       originalHeight = preview.naturalHeight;
@@ -239,34 +412,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Capture original image data.
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = originalWidth;
-      canvas.height = originalHeight;
-      ctx.drawImage(preview, 0, 0);
-      const imageData = ctx.getImageData(0, 0, originalWidth, originalHeight);
-      const data = imageData.data;
-      const pixelCount = originalWidth * originalHeight;
+      extractChannelDataFromImage(preview, `preview:${preview.currentSrc || preview.src}`);
 
-      channelData.red = new Uint8ClampedArray(pixelCount);
-      channelData.green = new Uint8ClampedArray(pixelCount);
-      channelData.blue = new Uint8ClampedArray(pixelCount);
-      channelData.alpha = new Uint8ClampedArray(pixelCount);
-      channelData.width = originalWidth;
-      channelData.height = originalHeight;
-
-      // Separate channels
-      for (let i = 0; i < pixelCount; i++) {
-        const idx = i * 4;
-        channelData.red[i] = data[idx];
-        channelData.green[i] = data[idx + 1];
-        channelData.blue[i] = data[idx + 2];
-        channelData.alpha[i] = data[idx + 3];
+      // Reset channel controls only when loading a brand-new upload.
+      if (isFreshUploadLoad) {
+        resetChannelControls(false);
       }
-
-      // Reset channel controls to neutral values for each new upload.
-      resetChannelControls(false);
 
       // Scale image to fit the current canvas workspace while maintaining aspect ratio
       const bounds = getCanvasBounds();
@@ -283,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isFreshUploadLoad) {
         dropArea.style.display = 'none';
         showBtn.style.display = 'none';
-        menuBtn.style.display = 'block';
+        menuBtn.style.display = 'flex';
         isFlipped = false;
         offsetX = 0;
         offsetY = 0;
@@ -306,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dropArea.classList.remove('dragover');
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      handleImageFile(files[0]);
+      handleImageFile(files[0], { appendAsLayer: true });
     }
   });
 
@@ -389,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fileInput.addEventListener('change', (e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleImageFile(files[0]);
+      handleImageFile(files[0], { appendAsLayer: true });
     }
   });
 
@@ -547,38 +698,74 @@ document.addEventListener('DOMContentLoaded', () => {
     if (animationFrameId !== null) return;
     function loop() {
       let updated = false;
-      
-      if (activeKeys['ArrowUp']) {
-        offsetY -= moveStep;
-        updated = true;
-      }
-      if (activeKeys['ArrowDown']) {
-        offsetY += moveStep;
-        updated = true;
-      }
-      if (activeKeys['ArrowLeft']) {
-        offsetX -= moveStep;
-        updated = true;
-      }
-      if (activeKeys['ArrowRight']) {
-        offsetX += moveStep;
-        updated = true;
-      }
-      if (activeKeys['Enlarge']) {
-        width += sizeStep;
-        height += sizeStep;
-        updated = true;
-      }
-      if (activeKeys['Shrink']) {
-        if (width > sizeStep && height > sizeStep) {
-          width -= sizeStep;
-          height -= sizeStep;
+
+      const wantsTransform = activeKeys['ArrowUp'] || activeKeys['ArrowDown'] || activeKeys['ArrowLeft']
+        || activeKeys['ArrowRight'] || activeKeys['Enlarge'] || activeKeys['Shrink'];
+
+      if (wantsTransform) {
+        if (activeGrabMode === 'layer' && ensureLayerSessionFromPreview()) {
+          const selectedLayer = getSelectedLayer();
+          if (selectedLayer) {
+            if (transformHistoryArmed) {
+              saveImageState(preview);
+              transformHistoryArmed = false;
+            }
+            if (activeKeys['ArrowUp']) {
+              selectedLayer.y -= moveStep;
+              updated = true;
+            }
+            if (activeKeys['ArrowDown']) {
+              selectedLayer.y += moveStep;
+              updated = true;
+            }
+            if (activeKeys['ArrowLeft']) {
+              selectedLayer.x -= moveStep;
+              updated = true;
+            }
+            if (activeKeys['ArrowRight']) {
+              selectedLayer.x += moveStep;
+              updated = true;
+            }
+            if (activeKeys['Enlarge']) {
+              selectedLayer.scale = Math.min(8, Math.max(0.05, Number(selectedLayer.scale || 1) + layerScaleStep));
+              updated = true;
+            }
+            if (activeKeys['Shrink']) {
+              selectedLayer.scale = Math.min(8, Math.max(0.05, Number(selectedLayer.scale || 1) - layerScaleStep));
+              updated = true;
+            }
+          }
+          if (updated) {
+            syncLayerControls();
+            renderLayerComposite();
+          }
+        } else if (activeGrabMode === 'canvas' && isImageLoaded()) {
+          if (activeKeys['ArrowUp']) {
+            offsetY -= moveStep;
+            updated = true;
+          }
+          if (activeKeys['ArrowDown']) {
+            offsetY += moveStep;
+            updated = true;
+          }
+          if (activeKeys['ArrowLeft']) {
+            offsetX -= moveStep;
+            updated = true;
+          }
+          if (activeKeys['ArrowRight']) {
+            offsetX += moveStep;
+            updated = true;
+          }
+          if (activeKeys['Enlarge'] && scaleCanvasPreview(1)) {
+            updated = true;
+          }
+          if (activeKeys['Shrink'] && scaleCanvasPreview(-1)) {
+            updated = true;
+          }
+          if (updated) {
+            updateImageTransform();
+          }
         }
-        updated = true;
-      }
-      
-      if (updated) {
-        updateImageTransform();
       }
       
       animationFrameId = requestAnimationFrame(loop);
@@ -606,9 +793,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     button.addEventListener('mouseup', () => {
       activeKeys[actionKey] = false;
+      if (!activeKeys['ArrowUp'] && !activeKeys['ArrowDown'] && !activeKeys['ArrowLeft']
+        && !activeKeys['ArrowRight'] && !activeKeys['Enlarge'] && !activeKeys['Shrink']) {
+        transformHistoryArmed = true;
+      }
     });
     button.addEventListener('mouseleave', () => {
       activeKeys[actionKey] = false;
+      if (!activeKeys['ArrowUp'] && !activeKeys['ArrowDown'] && !activeKeys['ArrowLeft']
+        && !activeKeys['ArrowRight'] && !activeKeys['Enlarge'] && !activeKeys['Shrink']) {
+        transformHistoryArmed = true;
+      }
     });
   }
 
@@ -631,32 +826,43 @@ document.addEventListener('DOMContentLoaded', () => {
       saveImageState(preview);
     }
     operation();
+    if (isLayerSessionActive()) {
+      resetLayerState();
+    }
   }
 
   resetBtn.addEventListener('click', () => {
-    runImageOperation(() => {
+    applyTransformByGrabMode((layer) => {
+      layer.x = 0;
+      layer.y = 0;
+      layer.scale = 1;
+      layer.rotation = 0;
+      layer.flipX = false;
+    }, () => {
       offsetX = 0;
       offsetY = 0;
-      width = initialWidth;
-      height = initialHeight;
+      width = initialWidth || width;
+      height = initialHeight || height;
       rotation = 0;
-      updateImageTransform();
-    }, { saveHistory: true });
+      isFlipped = false;
+    }, { saveLayerHistory: true });
   });
   
   flipBtn.addEventListener('click', () => {
-    runImageOperation(() => {
+    applyTransformByGrabMode((layer) => {
+      layer.flipX = !Boolean(layer.flipX);
+    }, () => {
       isFlipped = !isFlipped;
-      updateImageTransform();
-    }, { saveHistory: true });
+    }, { saveLayerHistory: true });
   });
   
   rotateBtn.addEventListener('click', () => {
-    runImageOperation(() => {
-      rotation += 90;
-      if (rotation >= 360) rotation = 0;
-      updateImageTransform();
-    }, { saveHistory: true });
+    applyTransformByGrabMode((layer) => {
+      const next = (Number(layer.rotation || 0) + 90) % 360;
+      layer.rotation = next;
+    }, () => {
+      rotation = (rotation + 90) % 360;
+    }, { saveLayerHistory: true });
   });
   
   restoreBtn.addEventListener('click', () => {
@@ -694,6 +900,424 @@ document.addEventListener('DOMContentLoaded', () => {
   bindFilterButton(acrylicBtn, applyAcrylicFilter);
   bindFilterButton(medianBtn, applyMedianFilter);
 
+  function isLayerSessionActive() {
+    return layerState.layers.length > 0;
+  }
+
+  function setLayerStatus(text) {
+    if (layerStatus) {
+      layerStatus.textContent = text;
+    }
+  }
+
+  function createCurrentImageDataUrl() {
+    const snapshot = createImageSnapshot(preview);
+    return snapshot ? snapshot.dataUrl : null;
+  }
+
+  function loadImageData(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to decode layer image data.'));
+      img.src = dataUrl;
+    });
+  }
+
+  function getSelectedLayerIndex() {
+    if (!isLayerSessionActive()) return -1;
+    const selectedIndex = layerState.layers.findIndex((layer) => layer.id === layerState.selectedLayerId);
+    if (selectedIndex >= 0) return selectedIndex;
+    return layerState.layers.length - 1;
+  }
+
+  function getSelectedLayer() {
+    const idx = getSelectedLayerIndex();
+    return idx >= 0 ? layerState.layers[idx] : null;
+  }
+
+  function ensureLayerSessionFromPreview() {
+    if (isLayerSessionActive()) return true;
+    if (!isImageLoaded()) return false;
+    const baseDataUrl = createCurrentImageDataUrl();
+    const dims = getImageDimensions(preview);
+    if (!baseDataUrl || !dims) return false;
+
+    const baseLayerId = layerState.nextLayerId++;
+    layerState.layers = [{
+      id: baseLayerId,
+      name: 'Background',
+      dataUrl: baseDataUrl,
+      visible: true,
+      opacity: 100,
+      blendMode: 'normal',
+      scale: 1,
+      rotation: 0,
+      flipX: false,
+      x: 0,
+      y: 0
+    }];
+    layerState.selectedLayerId = baseLayerId;
+    layerState.canvasWidth = dims.width;
+    layerState.canvasHeight = dims.height;
+    return true;
+  }
+
+  function renderLayerList() {
+    if (!layerList) return;
+    if (!isLayerSessionActive()) {
+      layerList.innerHTML = `<div class="layer-list-item is-active">
+        <span class="layer-eye"></span>
+        <span class="layer-thumb"><span class="layer-chip">BG</span></span>
+        <span class="layer-name">Background</span>
+      </div>`;
+      return;
+    }
+
+    const rows = [];
+    for (let i = layerState.layers.length - 1; i >= 0; i--) {
+      const layer = layerState.layers[i];
+      const chip = i === 0 ? 'BG' : `L${i}`;
+      const activeClass = layer.id === layerState.selectedLayerId ? ' is-active' : '';
+      const hiddenClass = layer.visible ? '' : ' is-hidden';
+      const visibilityText = layer.visible ? 'Visible' : 'Hidden';
+      rows.push(`<div class="layer-list-item${activeClass}${hiddenClass}" data-layer-id="${layer.id}">
+        <span class="layer-eye" title="${visibilityText}"></span>
+        <span class="layer-thumb"><span class="layer-chip">${chip}</span></span>
+        <span class="layer-name">${layer.name}</span>
+      </div>`);
+    }
+    layerList.innerHTML = rows.join('');
+  }
+
+  function syncLayerControls() {
+    const selectedLayer = getSelectedLayer();
+    const opacityValueSafe = selectedLayer ? String(selectedLayer.opacity) : '100';
+    if (layerOpacitySlider) {
+      layerOpacitySlider.value = opacityValueSafe;
+    }
+    if (layerOpacityValue) {
+      layerOpacityValue.value = opacityValueSafe;
+    }
+    if (layerBlendMode) {
+      layerBlendMode.value = selectedLayer ? selectedLayer.blendMode : 'normal';
+    }
+    if (layerToggleBtn) {
+      const isVisible = selectedLayer ? selectedLayer.visible : true;
+      const nextActionLabel = isVisible ? 'Hide Layer' : 'Show Layer';
+      layerToggleBtn.setAttribute('aria-label', nextActionLabel);
+      layerToggleBtn.setAttribute('title', nextActionLabel);
+    }
+    renderLayerList();
+  }
+
+  function applyTransformToSelectedLayer(mutator, options = {}) {
+    const saveHistory = options.saveHistory !== false;
+    if (!ensureLayerSessionFromPreview()) return;
+    const selectedLayer = getSelectedLayer();
+    if (!selectedLayer) return;
+    if (saveHistory) {
+      saveImageState(preview);
+    }
+    mutator(selectedLayer);
+    syncLayerControls();
+    renderLayerComposite();
+  }
+
+  function scaleCanvasPreview(direction) {
+    if (!isImageLoaded()) return false;
+    const baseWidth = Number.isFinite(width) && width > 0 ? width : Math.max(1, Number(initialWidth) || 1);
+    const baseHeight = Number.isFinite(height) && height > 0 ? height : Math.max(1, Number(initialHeight) || 1);
+    const nextWidth = Math.max(20, baseWidth + (direction * sizeStep));
+    const scaleFactor = nextWidth / baseWidth;
+    width = nextWidth;
+    height = Math.max(20, baseHeight * scaleFactor);
+    return true;
+  }
+
+  /**
+   * Apply transform behavior based on the selected grab mode.
+   * Canvas mode updates viewport transform only and does not touch undo/redo.
+   * Layer mode updates the selected layer and keeps current undo/redo behavior.
+   * @param {(layer: {x:number,y:number,scale:number,rotation:number,flipX:boolean}) => void} layerMutator
+   * @param {() => void} canvasMutator
+   * @param {{saveLayerHistory?: boolean}} [options]
+   */
+  function applyTransformByGrabMode(layerMutator, canvasMutator, options = {}) {
+    if (activeGrabMode === 'layer') {
+      applyTransformToSelectedLayer(layerMutator, {
+        saveHistory: options.saveLayerHistory !== false
+      });
+      return;
+    }
+    if (!isImageLoaded()) return;
+    canvasMutator();
+    updateImageTransform();
+  }
+
+  function resetLayerState() {
+    layerState.layers = [];
+    layerState.selectedLayerId = null;
+    layerState.renderToken += 1;
+    layerState.nextLayerId = 1;
+    layerState.canvasWidth = 0;
+    layerState.canvasHeight = 0;
+    nextLayerNumber = 1;
+    setLayerStatus('Top layer inactive');
+    syncLayerControls();
+  }
+
+  function sanitizeLayerName(rawName) {
+    const trimmed = String(rawName || '').trim();
+    if (!trimmed) return `Layer ${nextLayerNumber}`;
+    const noExt = trimmed.replace(/\.[^/.]+$/, '');
+    return noExt || `Layer ${nextLayerNumber}`;
+  }
+
+  function createTransparentLayerDataUrl(width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return canvas.toDataURL('image/png');
+  }
+
+  function fitImageToLayerCanvasDataUrl(image, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+    const scale = Math.min(width / sourceWidth, height / sourceHeight);
+    const drawWidth = Math.max(1, Math.round(sourceWidth * scale));
+    const drawHeight = Math.max(1, Math.round(sourceHeight * scale));
+    const offsetX = Math.round((width - drawWidth) / 2);
+    const offsetY = Math.round((height - drawHeight) / 2);
+    ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight, offsetX, offsetY, drawWidth, drawHeight);
+    return canvas.toDataURL('image/png');
+  }
+
+  async function renderLayerComposite() {
+    if (!isLayerSessionActive()) return;
+    const renderToken = ++layerState.renderToken;
+
+    try {
+      const loadedLayers = await Promise.all(layerState.layers.map(async (layer) => ({
+        layer,
+        image: await loadImageData(layer.dataUrl)
+      })));
+      if (renderToken !== layerState.renderToken) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = layerState.canvasWidth;
+      canvas.height = layerState.canvasHeight;
+      const ctx = canvas.getContext('2d');
+
+      for (const loaded of loadedLayers) {
+        const layer = loaded.layer;
+        if (!layer.visible) continue;
+        ctx.globalAlpha = Math.max(0, Math.min(100, layer.opacity)) / 100;
+        ctx.globalCompositeOperation = BLEND_MODE_MAP[layer.blendMode] || 'source-over';
+        const layerX = Number(layer.x || 0);
+        const layerY = Number(layer.y || 0);
+        const layerScale = Math.max(0.05, Number(layer.scale || 1));
+        const layerRotation = Number(layer.rotation || 0);
+        const layerFlipX = Boolean(layer.flipX);
+        const drawWidth = canvas.width * layerScale;
+        const drawHeight = canvas.height * layerScale;
+        ctx.save();
+        ctx.translate((canvas.width / 2) + layerX, (canvas.height / 2) + layerY);
+        ctx.rotate((layerRotation * Math.PI) / 180);
+        ctx.scale(layerFlipX ? -1 : 1, 1);
+        ctx.drawImage(loaded.image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.restore();
+      }
+
+      preview.src = canvas.toDataURL();
+      const selectedLayer = getSelectedLayer();
+      if (selectedLayer) {
+        setLayerStatus(`Active: ${selectedLayer.name} | ${selectedLayer.blendMode} | ${selectedLayer.opacity}%`);
+      } else {
+        setLayerStatus('Layer stack active');
+      }
+    } catch (err) {
+      console.error('Layer composite render failed:', err);
+    }
+  }
+
+  function createTopLayerFromCurrent() {
+    if (!isImageLoaded()) return;
+    if (!ensureLayerSessionFromPreview()) return;
+    const selected = getSelectedLayer();
+    if (!selected) return;
+
+    saveImageState(preview);
+    const id = layerState.nextLayerId++;
+    layerState.layers.push({
+      id,
+      name: `Layer ${nextLayerNumber}`,
+      dataUrl: selected.dataUrl,
+      visible: true,
+      opacity: 100,
+      blendMode: selected.blendMode,
+      scale: Number(selected.scale || 1),
+      rotation: Number(selected.rotation || 0),
+      flipX: Boolean(selected.flipX),
+      x: Number(selected.x || 0),
+      y: Number(selected.y || 0)
+    });
+    nextLayerNumber += 1;
+    layerState.selectedLayerId = id;
+    syncLayerControls();
+    renderLayerComposite();
+  }
+
+  function createNewLayerFromCurrent() {
+    if (!isImageLoaded()) return;
+    if (!ensureLayerSessionFromPreview()) return;
+    saveImageState(preview);
+
+    const id = layerState.nextLayerId++;
+    layerState.layers.push({
+      id,
+      name: `Layer ${nextLayerNumber}`,
+      dataUrl: createTransparentLayerDataUrl(layerState.canvasWidth, layerState.canvasHeight),
+      visible: true,
+      opacity: 100,
+      blendMode: 'normal',
+      scale: 1,
+      rotation: 0,
+      flipX: false,
+      x: 0,
+      y: 0
+    });
+    nextLayerNumber += 1;
+    layerState.selectedLayerId = id;
+    syncLayerControls();
+    renderLayerComposite();
+  }
+
+  function discardTopLayer() {
+    if (!ensureLayerSessionFromPreview()) return;
+    const selectedIndex = getSelectedLayerIndex();
+    if (selectedIndex < 0) return;
+    if (layerState.layers.length <= 1) {
+      setLayerStatus('Cannot discard the only layer.');
+      return;
+    }
+
+    saveImageState(preview);
+    layerState.layers.splice(selectedIndex, 1);
+    const nextIndex = Math.min(selectedIndex, layerState.layers.length - 1);
+    layerState.selectedLayerId = layerState.layers[nextIndex].id;
+    syncLayerControls();
+    renderLayerComposite();
+  }
+
+  function mergeTopLayer() {
+    if (!ensureLayerSessionFromPreview()) return;
+    const selectedIndex = getSelectedLayerIndex();
+    if (selectedIndex <= 0) {
+      setLayerStatus('Select a layer above background to merge.');
+      return;
+    }
+
+    saveImageState(preview);
+    const topLayer = layerState.layers[selectedIndex];
+    const belowLayer = layerState.layers[selectedIndex - 1];
+
+    Promise.all([loadImageData(belowLayer.dataUrl), loadImageData(topLayer.dataUrl)])
+      .then(([belowImage, topImage]) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = layerState.canvasWidth;
+        canvas.height = layerState.canvasHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        const belowScale = Math.max(0.05, Number(belowLayer.scale || 1));
+        const belowDrawWidth = canvas.width * belowScale;
+        const belowDrawHeight = canvas.height * belowScale;
+        ctx.save();
+        ctx.translate((canvas.width / 2) + Number(belowLayer.x || 0), (canvas.height / 2) + Number(belowLayer.y || 0));
+        ctx.rotate((Number(belowLayer.rotation || 0) * Math.PI) / 180);
+        ctx.scale(Boolean(belowLayer.flipX) ? -1 : 1, 1);
+        ctx.drawImage(belowImage, -belowDrawWidth / 2, -belowDrawHeight / 2, belowDrawWidth, belowDrawHeight);
+        ctx.restore();
+        if (topLayer.visible) {
+          ctx.globalAlpha = Math.max(0, Math.min(100, topLayer.opacity)) / 100;
+          ctx.globalCompositeOperation = BLEND_MODE_MAP[topLayer.blendMode] || 'source-over';
+          const topScale = Math.max(0.05, Number(topLayer.scale || 1));
+          const topDrawWidth = canvas.width * topScale;
+          const topDrawHeight = canvas.height * topScale;
+          ctx.save();
+          ctx.translate((canvas.width / 2) + Number(topLayer.x || 0), (canvas.height / 2) + Number(topLayer.y || 0));
+          ctx.rotate((Number(topLayer.rotation || 0) * Math.PI) / 180);
+          ctx.scale(Boolean(topLayer.flipX) ? -1 : 1, 1);
+          ctx.drawImage(topImage, -topDrawWidth / 2, -topDrawHeight / 2, topDrawWidth, topDrawHeight);
+          ctx.restore();
+        }
+        belowLayer.dataUrl = canvas.toDataURL('image/png');
+        belowLayer.name = `${belowLayer.name} + ${topLayer.name}`;
+        belowLayer.visible = true;
+        belowLayer.opacity = 100;
+        belowLayer.blendMode = 'normal';
+        belowLayer.scale = 1;
+        belowLayer.rotation = 0;
+        belowLayer.flipX = false;
+        belowLayer.x = 0;
+        belowLayer.y = 0;
+        layerState.layers.splice(selectedIndex, 1);
+        layerState.selectedLayerId = belowLayer.id;
+        syncLayerControls();
+        renderLayerComposite();
+      })
+      .catch((err) => {
+        console.error('Layer merge failed:', err);
+      });
+  }
+
+  async function addImageAsLayer(file) {
+    if (!isImageLoaded()) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      const image = await loadImageData(objectUrl);
+      const width = image.naturalWidth || image.width;
+      const height = image.naturalHeight || image.height;
+      if ((width * height) > MAX_TOTAL_PIXELS) {
+        alert('Image dimensions are too large. Please use an image under 40 megapixels.');
+        return;
+      }
+
+      if (!ensureLayerSessionFromPreview()) return;
+      saveImageState(preview);
+      const id = layerState.nextLayerId++;
+      const layerName = sanitizeLayerName(file.name);
+      layerState.layers.push({
+        id,
+        name: layerName,
+        dataUrl: fitImageToLayerCanvasDataUrl(image, layerState.canvasWidth, layerState.canvasHeight),
+        visible: true,
+        opacity: 100,
+        blendMode: 'normal',
+        scale: 1,
+        rotation: 0,
+        flipX: false,
+        x: 0,
+        y: 0
+      });
+      layerState.selectedLayerId = id;
+      nextLayerNumber += 1;
+      syncLayerControls();
+      renderLayerComposite();
+    } catch (err) {
+      console.error('Failed to add image layer:', err);
+      alert('Unable to load that image file.');
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
   /**
    * Toggle a panel between hidden and shown states.
    * @param {HTMLElement|null} panel
@@ -702,6 +1326,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function togglePanel(panel, shownDisplay = 'flex') {
     if (!panel) return;
     panel.style.display = panel.style.display === 'none' ? shownDisplay : 'none';
+  }
+
+  function toggleToolPanel(panel, shownDisplay = 'flex') {
+    togglePanel(panel, shownDisplay);
+    saveToolVisibilityPreferences();
   }
 
   function syncMenuButtonStates() {
@@ -714,16 +1343,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (menuBtn3 && sideMenu3) {
       menuBtn3.classList.toggle('is-open', sideMenu3.style.display !== 'none');
     }
+    if (menuBtn4 && sideMenu4) {
+      menuBtn4.classList.toggle('is-open', sideMenu4.style.display !== 'none');
+    }
   }
 
   menuBtn.addEventListener('click', () => {
-    togglePanel(sideMenu, 'flex');
+    toggleToolPanel(sideMenu, 'flex');
     updateSideMenuPositions();
     syncMenuButtonStates();
   });
 
   closeMenuBtn.addEventListener('click', () => {
     sideMenu.style.display = 'none';
+    saveToolVisibilityPreferences();
     updateSideMenuPositions();
     syncMenuButtonStates();
   });
@@ -731,6 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
   showBtn.addEventListener('click', () => {
     sideMenu.style.display = 'flex';
     showBtn.style.display = 'none';
+    saveToolVisibilityPreferences();
     updateSideMenuPositions();
     syncMenuButtonStates();
   });
@@ -746,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filters menu toggle (second menu)
   if (menuBtn2 && sideMenu2) {
     menuBtn2.addEventListener('click', () => {
-      togglePanel(sideMenu2, 'flex');
+      toggleToolPanel(sideMenu2, 'flex');
       updateSideMenuPositions();
       syncMenuButtonStates();
     });
@@ -755,6 +1389,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeMenu2Btn) {
     closeMenu2Btn.addEventListener('click', () => {
       sideMenu2.style.display = 'none';
+      saveToolVisibilityPreferences();
       updateSideMenuPositions();
       syncMenuButtonStates();
     });
@@ -763,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Channels menu toggle (third menu)
   if (menuBtn3 && sideMenu3) {
     menuBtn3.addEventListener('click', () => {
-      togglePanel(sideMenu3, 'flex');
+      toggleToolPanel(sideMenu3, 'flex');
       updateSideMenuPositions();
       syncMenuButtonStates();
     });
@@ -772,8 +1407,133 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeMenu3Btn) {
     closeMenu3Btn.addEventListener('click', () => {
       sideMenu3.style.display = 'none';
+      saveToolVisibilityPreferences();
       updateSideMenuPositions();
       syncMenuButtonStates();
+    });
+  }
+
+  // Layers menu toggle (fourth menu)
+  if (menuBtn4 && sideMenu4) {
+    menuBtn4.addEventListener('click', () => {
+      toggleToolPanel(sideMenu4, 'flex');
+      updateSideMenuPositions();
+      syncMenuButtonStates();
+    });
+  }
+
+  if (closeMenu4Btn) {
+    closeMenu4Btn.addEventListener('click', () => {
+      sideMenu4.style.display = 'none';
+      saveToolVisibilityPreferences();
+      updateSideMenuPositions();
+      syncMenuButtonStates();
+    });
+  }
+
+  if (duplicateLayerBtn) {
+    duplicateLayerBtn.addEventListener('click', () => {
+      createTopLayerFromCurrent();
+    });
+  }
+
+  if (newLayerBtn) {
+    newLayerBtn.addEventListener('click', () => {
+      createNewLayerFromCurrent();
+    });
+  }
+
+  if (canvasGrabBtn) {
+    canvasGrabBtn.addEventListener('click', () => {
+      setGrabMode('canvas');
+    });
+  }
+
+  if (layerGrabBtn) {
+    layerGrabBtn.addEventListener('click', () => {
+      setGrabMode('layer');
+    });
+  }
+
+  if (layerToggleBtn) {
+    layerToggleBtn.addEventListener('click', () => {
+      if (!ensureLayerSessionFromPreview()) return;
+      const selectedLayer = getSelectedLayer();
+      if (!selectedLayer) return;
+      selectedLayer.visible = !selectedLayer.visible;
+      syncLayerControls();
+      renderLayerComposite();
+    });
+  }
+
+  if (layerMergeBtn) {
+    layerMergeBtn.addEventListener('click', () => {
+      if (!isLayerSessionActive()) return;
+      mergeTopLayer();
+    });
+  }
+
+  if (layerDiscardBtn) {
+    layerDiscardBtn.addEventListener('click', () => {
+      discardTopLayer();
+    });
+  }
+
+  if (layerList) {
+    layerList.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const row = target.closest('.layer-list-item');
+      if (!row) return;
+      const layerIdRaw = row.getAttribute('data-layer-id');
+      if (!layerIdRaw) return;
+      const layerId = Number.parseInt(layerIdRaw, 10);
+      if (!Number.isFinite(layerId)) return;
+      layerState.selectedLayerId = layerId;
+      syncLayerControls();
+    });
+  }
+
+  function clampLayerOpacity(rawValue) {
+    const value = Number.parseInt(rawValue, 10);
+    const selectedLayer = getSelectedLayer();
+    const fallback = selectedLayer ? selectedLayer.opacity : 100;
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(0, Math.min(100, value));
+  }
+
+  if (layerOpacitySlider) {
+    layerOpacitySlider.addEventListener('input', () => {
+      if (!ensureLayerSessionFromPreview()) return;
+      const selectedLayer = getSelectedLayer();
+      if (!selectedLayer) return;
+      selectedLayer.opacity = clampLayerOpacity(layerOpacitySlider.value);
+      syncLayerControls();
+      renderLayerComposite();
+    });
+  }
+
+  if (layerOpacityValue) {
+    layerOpacityValue.addEventListener('input', () => {
+      if (!ensureLayerSessionFromPreview() && layerOpacityValue.value.trim() === '') return;
+      const selectedLayer = getSelectedLayer();
+      if (!selectedLayer) return;
+      selectedLayer.opacity = clampLayerOpacity(layerOpacityValue.value);
+      syncLayerControls();
+      renderLayerComposite();
+    });
+  }
+
+  if (layerBlendMode) {
+    layerBlendMode.addEventListener('change', () => {
+      if (!ensureLayerSessionFromPreview()) return;
+      const selectedLayer = getSelectedLayer();
+      if (!selectedLayer) return;
+      const nextMode = layerBlendMode.value;
+      if (!BLEND_MODE_MAP[nextMode]) return;
+      selectedLayer.blendMode = nextMode;
+      syncLayerControls();
+      renderLayerComposite();
     });
   }
 
@@ -793,13 +1553,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function updatePreviewCursor() {
+    if (!isImageLoaded()) {
+      preview.style.cursor = 'default';
+      return;
+    }
+    preview.style.cursor = isDragging ? 'grabbing' : 'grab';
+  }
+
+  function setGrabMode(mode, options = {}) {
+    const persist = options.persist !== false;
+    activeGrabMode = mode === 'layer' ? 'layer' : 'canvas';
+    if (canvasGrabBtn) {
+      canvasGrabBtn.classList.toggle('is-active', activeGrabMode === 'canvas');
+    }
+    if (layerGrabBtn) {
+      layerGrabBtn.classList.toggle('is-active', activeGrabMode === 'layer');
+    }
+    if (persist) {
+      writeStorageString(GRAB_MODE_STORAGE_KEY, activeGrabMode);
+    }
+    updatePreviewCursor();
+  }
+
   function endDrag(pointerId = null) {
     if (!isDragging) return;
     isDragging = false;
+    dragLayerId = null;
     if (pointerId !== null && preview.hasPointerCapture && preview.hasPointerCapture(pointerId)) {
       preview.releasePointerCapture(pointerId);
     }
-    preview.style.cursor = isImageLoaded() ? 'grab' : 'default';
+    updatePreviewCursor();
   }
 
   preview.addEventListener('dragstart', (e) => {
@@ -812,21 +1596,49 @@ document.addEventListener('DOMContentLoaded', () => {
     isDragging = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
-    dragOffsetX = offsetX;
-    dragOffsetY = offsetY;
+    if (activeGrabMode === 'layer') {
+      if (!ensureLayerSessionFromPreview()) {
+        isDragging = false;
+        return;
+      }
+      const selectedLayer = getSelectedLayer();
+      if (!selectedLayer) {
+        isDragging = false;
+        return;
+      }
+      saveImageState(preview);
+      dragLayerId = selectedLayer.id;
+      dragLayerStartX = Number(selectedLayer.x || 0);
+      dragLayerStartY = Number(selectedLayer.y || 0);
+    } else {
+      dragOffsetX = offsetX;
+      dragOffsetY = offsetY;
+    }
     if (preview.setPointerCapture) {
       preview.setPointerCapture(e.pointerId);
     }
-    preview.style.cursor = 'grabbing';
+    updatePreviewCursor();
   });
 
   preview.addEventListener('pointermove', (e) => {
     if (!isDragging) return;
     const deltaX = e.clientX - dragStartX;
     const deltaY = e.clientY - dragStartY;
-    offsetX = dragOffsetX + deltaX;
-    offsetY = dragOffsetY + deltaY;
-    updateImageTransform();
+    if (activeGrabMode === 'layer') {
+      if (!isLayerSessionActive()) return;
+      const layer = layerState.layers.find((entry) => entry.id === dragLayerId);
+      if (!layer) return;
+      const zoomScale = (originalWidth > 0 && width > 0) ? (width / originalWidth) : 1;
+      const safeScale = Number.isFinite(zoomScale) && zoomScale > 0 ? zoomScale : 1;
+      layer.x = dragLayerStartX + (deltaX / safeScale);
+      layer.y = dragLayerStartY + (deltaY / safeScale);
+      renderLayerComposite();
+      syncLayerControls();
+    } else {
+      offsetX = dragOffsetX + deltaX;
+      offsetY = dragOffsetY + deltaY;
+      updateImageTransform();
+    }
   });
 
   preview.addEventListener('pointerup', (e) => {
@@ -838,9 +1650,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   preview.addEventListener('pointerenter', () => {
-    if (isImageLoaded() && !isDragging) {
-      preview.style.cursor = 'grab';
-    }
+    updatePreviewCursor();
   });
 
   preview.addEventListener('pointerleave', () => {
@@ -901,43 +1711,60 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'f':
         case 'F':
           e.preventDefault();
-          saveImageState(preview);
-          isFlipped = !isFlipped;
-          updateImageTransform();
+          applyTransformByGrabMode((layer) => {
+            layer.flipX = !Boolean(layer.flipX);
+          }, () => {
+            isFlipped = !isFlipped;
+          }, { saveLayerHistory: true });
           break;
         case 'r':
         case 'R':
           e.preventDefault();
-          saveImageState(preview);
-          rotation += 90;
-          if (rotation >= 360) rotation = 0;
-          updateImageTransform();
+          applyTransformByGrabMode((layer) => {
+            const next = (Number(layer.rotation || 0) + 90) % 360;
+            layer.rotation = next;
+          }, () => {
+            rotation = (rotation + 90) % 360;
+          }, { saveLayerHistory: true });
           break;
       }
     }
   });
 
+  function rearmTransformHistoryIfIdle() {
+    if (!activeKeys['ArrowUp'] && !activeKeys['ArrowDown'] && !activeKeys['ArrowLeft']
+      && !activeKeys['ArrowRight'] && !activeKeys['Enlarge'] && !activeKeys['Shrink']) {
+      transformHistoryArmed = true;
+    }
+  }
+
   document.addEventListener('keyup', (e) => {
     switch(e.key) {
       case 'ArrowUp':
         activeKeys['ArrowUp'] = false;
+        rearmTransformHistoryIfIdle();
         break;
       case 'ArrowDown':
         activeKeys['ArrowDown'] = false;
+        rearmTransformHistoryIfIdle();
         break;
       case 'ArrowLeft':
         activeKeys['ArrowLeft'] = false;
+        rearmTransformHistoryIfIdle();
         break;
       case 'ArrowRight':
         activeKeys['ArrowRight'] = false;
+        rearmTransformHistoryIfIdle();
         break;
       case '+':
       case '=':
         activeKeys['Enlarge'] = false;
+        rearmTransformHistoryIfIdle();
         break;
       case '-':
       case '_':
         activeKeys['Shrink'] = false;
+        rearmTransformHistoryIfIdle();
         break;
     }
   });
@@ -946,14 +1773,12 @@ document.addEventListener('DOMContentLoaded', () => {
     workspaceStage.addEventListener('wheel', (e) => {
       if (isImageLoaded()) {
         e.preventDefault();
-        if (e.deltaY < 0) {
-          width += sizeStep;
-          height += sizeStep;
-        } else if (width > sizeStep && height > sizeStep) {
-          width -= sizeStep;
-          height -= sizeStep;
-        }
-        updateImageTransform();
+        applyTransformByGrabMode((layer) => {
+          const nextScale = Number(layer.scale || 1) + (e.deltaY < 0 ? layerScaleStep : -layerScaleStep);
+          layer.scale = Math.min(8, Math.max(0.05, nextScale));
+        }, () => {
+          scaleCanvasPreview(e.deltaY < 0 ? 1 : -1);
+        }, { saveLayerHistory: true });
       }
     }, { passive: false });
   }
@@ -974,6 +1799,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sideMenu3) {
         sideMenu3.style.top = '';
       }
+
+      if (sideMenu4) {
+        sideMenu4.style.top = '';
+      }
     } catch (err) {
       // silent fail if elements aren't available yet
       // console.warn('updateSideMenuPositions failed', err);
@@ -992,7 +1821,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial positioning
   updateSideMenuPositions();
+  applyStoredToolVisibilityPreferences();
   syncMenuButtonStates();
+  setGrabMode(readStorageString(GRAB_MODE_STORAGE_KEY, 'canvas'), { persist: false });
+  resetLayerState();
   updateRulers();
   /**
    * Modify image pixels by calling a user-provided callback per pixel.
@@ -1495,6 +2327,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     applyHistorySnapshot(imageElement, previousSnapshot);
+    resetLayerState();
     updateHistoryControls();
   }
 
@@ -1510,6 +2343,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     applyHistorySnapshot(imageElement, redoSnapshot);
+    resetLayerState();
     updateHistoryControls();
   }
 
@@ -1634,19 +2468,8 @@ document.addEventListener('DOMContentLoaded', () => {
     applyChannelBrightness(imageElement, rValue, gValue, bValue, aValue, brightnessValue);
   }
 
-  /**
-   * Apply RGBA multipliers and brightness together using the separated
-   * channel buffers stored in `channelData`.
-   * @param {HTMLImageElement} imageElement
-   * @param {number|string} rValue - 0-255 slider value for red
-   * @param {number|string} gValue - 0-255 slider value for green
-   * @param {number|string} bValue - 0-255 slider value for blue
-   * @param {number|string} aValue - 0-255 slider value for alpha
-   * @param {number|string} brightnessValue - percent (100 = original)
-   */
-  function applyChannelBrightness(imageElement, rValue, gValue, bValue, aValue, brightnessValue) {
-    if (!channelData.red) return;
-    hasChanges = true;
+  function renderChannelDataToDataUrl(rValue, gValue, bValue, aValue, brightnessValue) {
+    if (!channelData.red) return null;
 
     const rv = Number(rValue) / 255;
     const gv = Number(gValue) / 255;
@@ -1665,16 +2488,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     for (let i = 0; i < pixelCount; i++) {
       const idx = i * 4;
-      // Apply channel multiplier then brightness factor, clamp to [0,255]
-      data[idx]     = Math.min(255, Math.round(channelData.red[i]   * rv * brightnessFactor));
+      data[idx] = Math.min(255, Math.round(channelData.red[i] * rv * brightnessFactor));
       data[idx + 1] = Math.min(255, Math.round(channelData.green[i] * gv * brightnessFactor));
-      data[idx + 2] = Math.min(255, Math.round(channelData.blue[i]  * bv * brightnessFactor));
+      data[idx + 2] = Math.min(255, Math.round(channelData.blue[i] * bv * brightnessFactor));
       data[idx + 3] = Math.min(255, Math.round(channelData.alpha[i] * av));
     }
 
     ctx.putImageData(imageData, 0, 0);
+    return canvas.toDataURL();
+  }
+
+  /**
+   * Apply RGBA multipliers and brightness together using the separated
+   * channel buffers stored in `channelData`.
+   * @param {HTMLImageElement} imageElement
+   * @param {number|string} rValue - 0-255 slider value for red
+   * @param {number|string} gValue - 0-255 slider value for green
+   * @param {number|string} bValue - 0-255 slider value for blue
+   * @param {number|string} aValue - 0-255 slider value for alpha
+   * @param {number|string} brightnessValue - percent (100 = original)
+   */
+  function applyChannelBrightness(imageElement, rValue, gValue, bValue, aValue, brightnessValue) {
+    const applyToken = ++channelApplyToken;
+    if (isLayerSessionActive()) {
+      const selectedLayer = getSelectedLayer();
+      if (!selectedLayer) return;
+      const sourceKey = `layer:${selectedLayer.id}`;
+      const selectedLayerId = selectedLayer.id;
+
+      const applyToSelectedLayer = () => {
+        if (applyToken !== channelApplyToken) return;
+        const updatedDataUrl = renderChannelDataToDataUrl(rValue, gValue, bValue, aValue, brightnessValue);
+        if (!updatedDataUrl) return;
+        const activeLayer = layerState.layers.find((layer) => layer.id === selectedLayerId);
+        if (!activeLayer) return;
+        activeLayer.dataUrl = updatedDataUrl;
+        hasChanges = true;
+        renderLayerComposite();
+      };
+
+      if (!channelData.red || channelData.sourceKey !== sourceKey) {
+        loadImageData(selectedLayer.dataUrl)
+          .then((layerImage) => {
+            if (applyToken !== channelApplyToken) return;
+            const activeLayer = layerState.layers.find((layer) => layer.id === selectedLayerId);
+            if (!activeLayer) return;
+            if (!extractChannelDataFromImage(layerImage, sourceKey)) return;
+            applyToSelectedLayer();
+          })
+          .catch((err) => {
+            console.error('Failed to apply channels to selected layer:', err);
+          });
+        return;
+      }
+
+      applyToSelectedLayer();
+      return;
+    }
+
+    if (!channelData.red) return;
+    const updatedDataUrl = renderChannelDataToDataUrl(rValue, gValue, bValue, aValue, brightnessValue);
+    if (!updatedDataUrl) return;
+    hasChanges = true;
     isApplyingRGBA = true;
-    imageElement.src = canvas.toDataURL();
+    imageElement.src = updatedDataUrl;
   }
 
   /**
