@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuBtn = document.getElementById('menu-btn');
   const closeMenuBtn = document.getElementById('close-menu-btn');
   const helpBtn = document.getElementById('help-btn');
+  const fileMenuBtn = document.getElementById('file-menu-btn');
+  const fileMenu = document.getElementById('file-menu');
+  const editMenuBtn = document.getElementById('edit-menu-btn');
+  const editMenu = document.getElementById('edit-menu');
+  const openFileBtn = document.getElementById('open-file-btn');
   const helpMenu = document.getElementById('help-menu');
   const closeHelpBtn = document.getElementById('close-help-btn');
   const menuBtn2 = document.getElementById('menu-btn-2');
@@ -305,18 +310,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  dropArea.addEventListener('click', () => {
+  function openFilePicker() {
     fileInput.value = '';
     fileInput.click();
+  }
+
+  dropArea.addEventListener('click', () => {
+    openFilePicker();
   });
 
   dropArea.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      fileInput.value = '';
-      fileInput.click();
+      openFilePicker();
     }
   });
+
+  function setFileMenuOpen(isOpen) {
+    if (!fileMenuBtn || !fileMenu) return;
+    fileMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    fileMenu.classList.toggle('is-open', isOpen);
+  }
+
+  function setEditMenuOpen(isOpen) {
+    if (!editMenuBtn || !editMenu) return;
+    editMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    editMenu.classList.toggle('is-open', isOpen);
+  }
+
+  if (fileMenuBtn && fileMenu) {
+    fileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const shouldOpen = fileMenuBtn.getAttribute('aria-expanded') !== 'true';
+      setEditMenuOpen(false);
+      setFileMenuOpen(shouldOpen);
+    });
+
+    fileMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  if (editMenuBtn && editMenu) {
+    editMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const shouldOpen = editMenuBtn.getAttribute('aria-expanded') !== 'true';
+      setFileMenuOpen(false);
+      setEditMenuOpen(shouldOpen);
+    });
+
+    editMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  if (fileMenuBtn || editMenuBtn) {
+    document.addEventListener('click', () => {
+      setFileMenuOpen(false);
+      setEditMenuOpen(false);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        setFileMenuOpen(false);
+        setEditMenuOpen(false);
+      }
+    });
+  }
+
+  if (openFileBtn) {
+    openFileBtn.addEventListener('click', () => {
+      setFileMenuOpen(false);
+      setEditMenuOpen(false);
+      openFilePicker();
+    });
+  }
 
   fileInput.addEventListener('change', (e) => {
     const files = e.target.files;
@@ -592,11 +660,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   restoreBtn.addEventListener('click', () => {
+    setEditMenuOpen(false);
     restoreImageState(preview);
   });
 
   if (redoBtn) {
     redoBtn.addEventListener('click', () => {
+      setEditMenuOpen(false);
       redoImageState(preview);
     });
   }
@@ -707,15 +777,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  downloadBtn.addEventListener('click', () => {
-    if (isImageLoaded()) {
-      downloadImage(preview, 'modified-image.png');
-    }
-  });
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      setFileMenuOpen(false);
+      if (isImageLoaded()) {
+        downloadImage(preview, 'modified-image.png');
+      }
+    });
+  }
 
-  quitBtn.addEventListener('click', () => {
-    reloadPage();
-  });
+  if (quitBtn) {
+    quitBtn.addEventListener('click', () => {
+      setFileMenuOpen(false);
+      reloadPage();
+    });
+  }
 
   function endDrag(pointerId = null) {
     if (!isDragging) return;

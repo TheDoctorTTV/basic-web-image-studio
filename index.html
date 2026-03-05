@@ -12,9 +12,26 @@
   <body>
     <div class="editor-shell">
       <header class="topbar">
-        <div class="brand-block">
-          <strong class="app-title">Image Studio</strong>
-          <span class="app-subtitle">Web Image Editing Workspace</span>
+        <div class="topbar-start">
+          <div class="brand-block">
+            <strong class="app-title">Image Studio</strong>
+            <span class="app-subtitle">Web Image Editing Workspace</span>
+          </div>
+          <div class="file-menu-wrap">
+            <button id="file-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">File</button>
+            <div id="file-menu" class="file-menu-dropdown" role="menu" aria-label="File menu">
+              <button id="open-file-btn" class="file-menu-item" role="menuitem">Open File</button>
+              <button id="download-btn" class="file-menu-item" role="menuitem">Download</button>
+              <button id="quit-btn" class="file-menu-item file-menu-danger" role="menuitem">Clear</button>
+            </div>
+          </div>
+          <div class="edit-menu-wrap">
+            <button id="edit-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="edit-menu">Edit</button>
+            <div id="edit-menu" class="edit-menu-dropdown" role="menu" aria-label="Edit menu">
+              <button id="restore-btn" class="edit-menu-item" role="menuitem">Undo</button>
+              <button id="redo-btn" class="edit-menu-item" role="menuitem">Redo</button>
+            </div>
+          </div>
         </div>
         <div class="topbar-actions">
           <a class="topbar-link" href="https://github.com/TheDoctorTTV/basic-web-image-studio" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
@@ -52,14 +69,36 @@
               </svg>
             </button>
           </div>
-          <div class="shortcut-card">
-            <p class="shortcut-title">Shortcuts</p>
-            <p>Move: Arrow keys</p>
-            <p>Scale: +/- or mouse wheel</p>
-            <p>Flip: F</p>
-            <p>Rotate: R</p>
-            <p>Undo: Alt+Z</p>
-            <p>Redo: Alt+Y</p>
+          <div class="dock-footer">
+            <div class="history-progress dock-history-progress" aria-live="polite">
+              <div class="history-progress-row">
+                <div class="history-progress-head">
+                  <span>Undo</span>
+                  <span id="undo-progress-text">Used 0 / Free 200</span>
+                </div>
+                <div class="history-progress-track" role="presentation">
+                  <span id="undo-progress-fill" class="history-progress-fill"></span>
+                </div>
+              </div>
+              <div class="history-progress-row">
+                <div class="history-progress-head">
+                  <span>Redo</span>
+                  <span id="redo-progress-text">Used 0 / Free 200</span>
+                </div>
+                <div class="history-progress-track" role="presentation">
+                  <span id="redo-progress-fill" class="history-progress-fill redo-fill"></span>
+                </div>
+              </div>
+            </div>
+            <div class="shortcut-card">
+              <p class="shortcut-title">Shortcuts</p>
+              <p>Move: Arrow keys</p>
+              <p>Scale: +/- or mouse wheel</p>
+              <p>Flip: F</p>
+              <p>Rotate: R</p>
+              <p>Undo: Alt+Z</p>
+              <p>Redo: Alt+Y</p>
+            </div>
           </div>
         </aside>
 
@@ -89,40 +128,37 @@
               <button id="right-btn" style="grid-column: 3;" aria-label="Move right"><span class="arrow-glyph">→</span></button>
             </div>
             <div class="transform-action-buttons">
-              <button id="reset-btn" title="Recenter image" aria-label="Recenter image">⌖</button>
-              <button id="flip-btn" title="Flip image" aria-label="Flip image">⇆</button>
-              <button id="rotate-btn" title="Rotate image" aria-label="Rotate image">↻</button>
+              <button id="reset-btn" title="Recenter image" aria-label="Recenter image">
+                <svg class="transform-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="2.2"></circle>
+                  <circle cx="12" cy="12" r="7.2"></circle>
+                  <path d="M12 2.5v3"></path>
+                  <path d="M12 18.5v3"></path>
+                  <path d="M2.5 12h3"></path>
+                  <path d="M18.5 12h3"></path>
+                </svg>
+              </button>
+              <button id="flip-btn" title="Flip image" aria-label="Flip image">
+                <svg class="transform-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6.2 8.4a8.1 8.1 0 0 1 10.1 0.4"></path>
+                  <path d="M16.1 6.9l1.9 1.9-1.9 1.9"></path>
+                  <path d="M12 10.6v8.2"></path>
+                  <path d="M9 12.2 6 14.7 9 17.2"></path>
+                  <path d="M15 12.2 18 14.7 15 17.2"></path>
+                </svg>
+              </button>
+              <button id="rotate-btn" title="Rotate image" aria-label="Rotate image">
+                <svg class="transform-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
+                  <path d="M20 4v6h-6"></path>
+                </svg>
+              </button>
             </div>
-            <button id="quit-btn">Clear</button>
           </div>
 
           <div id="side-menu-2" style="display:flex;">
             <button id="close-menu-2-btn" title="Hide filters">✕</button>
             <h3>Filters</h3>
-            <div id="controls">
-              <button id="restore-btn">Undo</button>
-              <button id="redo-btn">Redo</button>
-            </div>
-            <div class="history-progress" aria-live="polite">
-              <div class="history-progress-row">
-                <div class="history-progress-head">
-                  <span>Undo</span>
-                  <span id="undo-progress-text">Used 0 / Free 200</span>
-                </div>
-                <div class="history-progress-track" role="presentation">
-                  <span id="undo-progress-fill" class="history-progress-fill"></span>
-                </div>
-              </div>
-              <div class="history-progress-row">
-                <div class="history-progress-head">
-                  <span>Redo</span>
-                  <span id="redo-progress-text">Used 0 / Free 200</span>
-                </div>
-                <div class="history-progress-track" role="presentation">
-                  <span id="redo-progress-fill" class="history-progress-fill redo-fill"></span>
-                </div>
-              </div>
-            </div>
             <div id="pixel-modification-buttons">
               <a class="section-label">Pixel Filters</a>
               <div id="filter-buttons">
@@ -141,7 +177,6 @@
                 <button id="normal-btn">Normal</button>
               </div>
             </div>
-            <button id="download-btn">Download</button>
           </div>
 
           <div id="side-menu-3" style="display:flex;">
