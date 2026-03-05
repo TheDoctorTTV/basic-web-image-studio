@@ -60,6 +60,46 @@ body::before {
   backdrop-filter: blur(4px);
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-link {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: linear-gradient(165deg, rgba(79, 95, 117, 0.95), rgba(52, 65, 83, 0.96));
+  color: #ecf3ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  padding: 6px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.16s ease, transform 0.14s ease, background 0.16s ease;
+}
+
+.topbar-link-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.topbar-link:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.topbar-link:focus-visible {
+  outline: 2px solid rgba(122, 184, 247, 0.9);
+  outline-offset: 2px;
+}
+
 .brand-block {
   display: flex;
   flex-direction: column;
