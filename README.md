@@ -3,10 +3,8 @@
 Basic Web Image Studio is a browser-based image editing workspace built with plain HTML, CSS, and JavaScript.  
 It supports drag-and-drop uploads, transform controls (move, scale, rotate, flip), filter actions, undo/redo history, and RGBA/brightness channel adjustments.
 
-## Live Site
-
-- Website: https://imagestudio.thetimevortex.net/
-- Repository: https://github.com/TheDoctorTTV/basic-web-image-studio
+## Website
+- https://imagestudio.thetimevortex.net/
 
 ## Features
 
