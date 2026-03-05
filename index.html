@@ -79,60 +79,34 @@
           <div id="menu-buttons-group">
             <!-- Transform/controls tab button (icon-only). -->
             <button id="menu-btn" class="menu-button" aria-label="Transform" title="Transform">
-              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 3v4"></path>
-                <path d="M12 17v4"></path>
-                <path d="M3 12h4"></path>
-                <path d="M17 12h4"></path>
-                <path d="M8 8l8 8"></path>
-                <path d="M16 8l-8 8"></path>
-                <circle cx="12" cy="12" r="3.2"></circle>
-              </svg>
+              <img class="tool-tab-icon-image" src="public/img/transform.svg" alt="" aria-hidden="true">
             </button>
 
             <!-- Filters tab button (funnel icon). -->
             <button id="menu-btn-2" class="menu-button" aria-label="Filters" title="Filters">
-              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 5h18l-7 8v5l-4 1v-6z"></path>
-              </svg>
+              <img class="tool-tab-icon-image" src="public/img/filter.svg" alt="" aria-hidden="true">
             </button>
 
             <!-- Channels tab button (RGB circles icon). -->
             <button id="menu-btn-3" class="menu-button" aria-label="Channels" title="Channels">
-              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="8" cy="12" r="4.5"></circle>
-                <circle cx="12" cy="12" r="4.5"></circle>
-                <circle cx="16" cy="12" r="4.5"></circle>
-              </svg>
+              <img class="tool-tab-icon-image" src="public/img/channels.svg" alt="" aria-hidden="true">
             </button>
 
             <!-- Layers tab button (stacked sheets icon). -->
             <button id="menu-btn-4" class="menu-button" aria-label="Layers" title="Layers">
-              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 7.5h12l-2 3H4z"></path>
-                <path d="M7 11.5h12l-2 3H5z"></path>
-                <path d="M8 15.5h12l-2 3H6z"></path>
-              </svg>
+              <img class="tool-tab-icon-image" src="public/img/layers.svg" alt="" aria-hidden="true">
+            </button>
+            <button id="menu-btn-5" class="menu-button" aria-label="Annotate" title="Annotate">
+              <img class="tool-tab-icon-image" src="public/img/annotate.svg" alt="" aria-hidden="true">
             </button>
           </div>
 
           <div id="grab-tools-group">
             <button id="canvas-grab-btn" class="layer-mode-btn is-active" title="Canvas Grab Tool (Default)" aria-label="Canvas grab tool">
-              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 4v16"></path>
-                <path d="M4 12h16"></path>
-                <path d="m8 8 4-4 4 4"></path>
-                <path d="m8 16 4 4 4-4"></path>
-              </svg>
+              <img class="tool-tab-icon-image" src="public/img/Canvas-grab.svg" alt="" aria-hidden="true">
             </button>
             <button id="layer-grab-btn" class="layer-mode-btn" title="Layer Grab Tool" aria-label="Layer grab tool">
-              <svg class="tool-tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="5" y="7" width="10" height="10" rx="2"></rect>
-                <path d="M9 3v4"></path>
-                <path d="M9 17v4"></path>
-                <path d="M3 11h4"></path>
-                <path d="M15 11h4"></path>
-              </svg>
+              <img class="tool-tab-icon-image" src="public/img/Layer-grab.svg" alt="" aria-hidden="true">
             </button>
           </div>
         </aside>
@@ -155,6 +129,7 @@
 
             <!-- Rendered image preview manipulated by transform/filter controls. -->
             <img id="preview" src="" alt="Image preview" style="display:none;">
+            <canvas id="annotation-overlay" aria-hidden="true"></canvas>
           </div>
         </section>
 
@@ -354,6 +329,32 @@
                 </div>
               </div>
               <p id="layer-status" class="layer-status">Top layer inactive</p>
+            </div>
+          </div>
+
+          <div id="side-menu-5" style="display:flex;">
+            <button id="close-menu-5-btn" title="Hide annotation tools">✕</button>
+            <h3>Annotate</h3>
+            <div id="annotation-buttons">
+              <a class="section-label">Tool</a>
+              <div id="annotation-tool-buttons">
+                <button id="annotation-tool-pen-btn" class="annotation-tool-btn is-active">Pen</button>
+                <button id="annotation-tool-pencil-btn" class="annotation-tool-btn">Pencil</button>
+                <button id="annotation-tool-brush-btn" class="annotation-tool-btn">Brush</button>
+                <button id="annotation-tool-line-btn" class="annotation-tool-btn">Line</button>
+              </div>
+
+              <a class="section-label">Style</a>
+              <div class="slider-container">
+                <label for="annotation-size-slider">Size</label>
+                <input id="annotation-size-slider" type="range" min="1" max="80" value="6">
+                <input id="annotation-size-value" class="channel-value-input" type="number" min="1" max="80" step="1" value="6" inputmode="numeric" aria-label="Annotation size">
+                <button id="annotation-size-reset-btn" class="channel-reset-btn" title="Reset annotation size" aria-label="Reset annotation size">&#x21BA;</button>
+              </div>
+              <div class="annotation-color-row">
+                <label for="annotation-color-input">Color</label>
+                <input id="annotation-color-input" type="color" value="#ff3b3b" aria-label="Annotation color">
+              </div>
             </div>
           </div>
         </aside>

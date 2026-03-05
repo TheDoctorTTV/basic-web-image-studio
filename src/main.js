@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuBtn4 = document.getElementById('menu-btn-4');
   const sideMenu4 = document.getElementById('side-menu-4');
   const closeMenu4Btn = document.getElementById('close-menu-4-btn');
+  const menuBtn5 = document.getElementById('menu-btn-5');
+  const sideMenu5 = document.getElementById('side-menu-5');
+  const closeMenu5Btn = document.getElementById('close-menu-5-btn');
   const invertBtn = document.getElementById('invert-btn');
   const grayscaleBtn = document.getElementById('grayscale-btn');
   const brightnessBtn = document.getElementById('brightness-btn');
@@ -79,6 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const layerList = document.getElementById('layer-list');
   const canvasGrabBtn = document.getElementById('canvas-grab-btn');
   const layerGrabBtn = document.getElementById('layer-grab-btn');
+  const annotationOverlay = document.getElementById('annotation-overlay');
+  const annotationPenBtn = document.getElementById('annotation-tool-pen-btn');
+  const annotationPencilBtn = document.getElementById('annotation-tool-pencil-btn');
+  const annotationBrushBtn = document.getElementById('annotation-tool-brush-btn');
+  const annotationLineBtn = document.getElementById('annotation-tool-line-btn');
+  const annotationSizeSlider = document.getElementById('annotation-size-slider');
+  const annotationSizeValue = document.getElementById('annotation-size-value');
+  const annotationSizeResetBtn = document.getElementById('annotation-size-reset-btn');
+  const annotationColorInput = document.getElementById('annotation-color-input');
 
   const downloadBtn = document.getElementById('download-btn');
   const quitBtn = document.getElementById('quit-btn');
@@ -181,8 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
     transform: true,
     filters: true,
     channels: true,
-    layers: true
+    layers: true,
+    annotate: true
   };
+  const DEFAULT_ANNOTATION_SIZE = 6;
+  const DEFAULT_ANNOTATION_COLOR = '#ff3b3b';
   const layerState = {
     layers: [],
     selectedLayerId: null,
@@ -191,6 +206,13 @@ document.addEventListener('DOMContentLoaded', () => {
     canvasWidth: 0,
     canvasHeight: 0
   };
+  let activeAnnotationTool = 'pen';
+  let activeInteractionMode = 'grab';
+  let annotationColor = DEFAULT_ANNOTATION_COLOR;
+  let annotationSize = DEFAULT_ANNOTATION_SIZE;
+  let isAnnotationDrawing = false;
+  let annotationStartX = 0;
+  let annotationStartY = 0;
   let nextLayerNumber = 1;
 
   /**
@@ -200,6 +222,15 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function isImageLoaded() {
     return preview.style.display === 'block';
+  }
+
+  function isAnnotationToolActive() {
+    if (!isPanelVisible(sideMenu5)) return false;
+    if (activeInteractionMode !== 'annotate') return false;
+    return activeAnnotationTool === 'pen'
+      || activeAnnotationTool === 'pencil'
+      || activeAnnotationTool === 'brush'
+      || activeAnnotationTool === 'line';
   }
 
   function resetChannelControls(applyToImage = false) {
@@ -270,7 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
       transform: stored && typeof stored.transform === 'boolean' ? stored.transform : DEFAULT_TOOL_VISIBILITY.transform,
       filters: stored && typeof stored.filters === 'boolean' ? stored.filters : DEFAULT_TOOL_VISIBILITY.filters,
       channels: stored && typeof stored.channels === 'boolean' ? stored.channels : DEFAULT_TOOL_VISIBILITY.channels,
-      layers: stored && typeof stored.layers === 'boolean' ? stored.layers : DEFAULT_TOOL_VISIBILITY.layers
+      layers: stored && typeof stored.layers === 'boolean' ? stored.layers : DEFAULT_TOOL_VISIBILITY.layers,
+      annotate: stored && typeof stored.annotate === 'boolean' ? stored.annotate : DEFAULT_TOOL_VISIBILITY.annotate
     };
   }
 
@@ -279,7 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
       transform: isPanelVisible(sideMenu),
       filters: isPanelVisible(sideMenu2),
       channels: isPanelVisible(sideMenu3),
-      layers: isPanelVisible(sideMenu4)
+      layers: isPanelVisible(sideMenu4),
+      annotate: isPanelVisible(sideMenu5)
     });
   }
 
@@ -289,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setPanelVisibility(sideMenu2, prefs.filters, 'flex');
     setPanelVisibility(sideMenu3, prefs.channels, 'flex');
     setPanelVisibility(sideMenu4, prefs.layers, 'flex');
+    setPanelVisibility(sideMenu5, prefs.annotate, 'flex');
   }
 
   function clearChannelDataCache() {
@@ -384,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(activePreviewObjectUrl);
         activePreviewObjectUrl = null;
       }
+      updateAnnotationOverlayInteractivity();
       alert('Unable to load that image file.');
     };
     preview.onload = function() {
@@ -446,6 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       updateImageTransform();
+      updateAnnotationOverlayInteractivity();
     };
     preview.style.display = 'block';
     preview.src = objectUrl;
@@ -691,7 +727,165 @@ document.addEventListener('DOMContentLoaded', () => {
     preview.style.height = height + 'px';
     const transformString = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scaleX(${scaleX}) rotate(${rotation}deg)`;
     preview.style.transform = transformString;
+    if (annotationOverlay) {
+      annotationOverlay.style.width = `${Math.max(1, Math.round(width))}px`;
+      annotationOverlay.style.height = `${Math.max(1, Math.round(height))}px`;
+      annotationOverlay.style.transform = transformString;
+      annotationOverlay.style.display = isImageLoaded() ? 'block' : 'none';
+    }
+    updateAnnotationOverlayInteractivity();
     updateRulers();
+  }
+
+  function getAnnotationContext() {
+    if (!annotationOverlay) return null;
+    return annotationOverlay.getContext('2d');
+  }
+
+  function syncAnnotationCanvasDimensions() {
+    if (!annotationOverlay || !isImageLoaded()) return;
+    const canvasWidth = Math.max(1, Math.round(width));
+    const canvasHeight = Math.max(1, Math.round(height));
+    if (annotationOverlay.width === canvasWidth && annotationOverlay.height === canvasHeight) return;
+    annotationOverlay.width = canvasWidth;
+    annotationOverlay.height = canvasHeight;
+  }
+
+  function clearAnnotationOverlay() {
+    const ctx = getAnnotationContext();
+    if (!ctx || !annotationOverlay) return;
+    ctx.clearRect(0, 0, annotationOverlay.width, annotationOverlay.height);
+  }
+
+  function clampAnnotationSize(rawSize) {
+    const parsed = Number.parseInt(rawSize, 10);
+    if (!Number.isFinite(parsed)) return annotationSize;
+    return Math.max(1, Math.min(80, parsed));
+  }
+
+  function syncAnnotationToolButtons() {
+    if (annotationPenBtn) annotationPenBtn.classList.toggle('is-active', activeAnnotationTool === 'pen');
+    if (annotationPencilBtn) annotationPencilBtn.classList.toggle('is-active', activeAnnotationTool === 'pencil');
+    if (annotationBrushBtn) annotationBrushBtn.classList.toggle('is-active', activeAnnotationTool === 'brush');
+    if (annotationLineBtn) annotationLineBtn.classList.toggle('is-active', activeAnnotationTool === 'line');
+  }
+
+  function setAnnotationTool(tool) {
+    const nextTool = ['pen', 'pencil', 'brush', 'line'].includes(tool) ? tool : 'pen';
+    activeAnnotationTool = nextTool;
+    activeInteractionMode = 'annotate';
+    syncAnnotationToolButtons();
+    updatePreviewCursor();
+    updateAnnotationOverlayInteractivity();
+  }
+
+  function setAnnotationSize(rawSize) {
+    annotationSize = clampAnnotationSize(rawSize);
+    if (annotationSizeSlider) annotationSizeSlider.value = String(annotationSize);
+    if (annotationSizeValue) annotationSizeValue.value = String(annotationSize);
+  }
+
+  function normalizeHexColor(rawColor) {
+    if (typeof rawColor !== 'string') return DEFAULT_ANNOTATION_COLOR;
+    const trimmed = rawColor.trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(trimmed)) return DEFAULT_ANNOTATION_COLOR;
+    return trimmed.toLowerCase();
+  }
+
+  function setAnnotationColor(rawColor) {
+    annotationColor = normalizeHexColor(rawColor);
+    if (annotationColorInput) annotationColorInput.value = annotationColor;
+  }
+
+  function updateAnnotationOverlayInteractivity() {
+    if (!annotationOverlay) return;
+    const allowDraw = isImageLoaded() && isAnnotationToolActive();
+    annotationOverlay.style.pointerEvents = allowDraw ? 'auto' : 'none';
+    if (!isImageLoaded()) {
+      clearAnnotationOverlay();
+    }
+  }
+
+  function getAnnotationPointFromClient(clientX, clientY) {
+    if (!workspaceStage || !isImageLoaded()) return null;
+    const stageRect = workspaceStage.getBoundingClientRect();
+    const centerX = stageRect.left + (stageRect.width / 2) + offsetX;
+    const centerY = stageRect.top + (stageRect.height / 2) + offsetY;
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+    const angle = (rotation * Math.PI) / 180;
+    const cos = Math.cos(-angle);
+    const sin = Math.sin(-angle);
+    const rotatedX = (dx * cos) - (dy * sin);
+    const rotatedY = (dx * sin) + (dy * cos);
+    const unflippedX = isFlipped ? -rotatedX : rotatedX;
+    const x = unflippedX + (width / 2);
+    const y = rotatedY + (height / 2);
+    if (x < 0 || y < 0 || x > width || y > height) return null;
+    return { x, y };
+  }
+
+  function applyAnnotationStrokeStyle(ctx, tool) {
+    if (!ctx) return;
+    const size = Math.max(1, annotationSize);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = annotationColor;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.shadowColor = 'transparent';
+    if (tool === 'pencil') {
+      ctx.globalAlpha = 0.72;
+      ctx.lineWidth = Math.max(1, size * 0.85);
+      return;
+    }
+    if (tool === 'brush') {
+      ctx.globalAlpha = 0.34;
+      ctx.lineWidth = Math.max(1, size * 1.8);
+      ctx.shadowColor = annotationColor;
+      ctx.shadowBlur = Math.max(1, size * 0.9);
+      return;
+    }
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = size;
+  }
+
+  function drawAnnotationSegment(startX, startY, endX, endY, tool) {
+    const ctx = getAnnotationContext();
+    if (!ctx || !annotationOverlay) return;
+    applyAnnotationStrokeStyle(ctx, tool);
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }
+
+  function drawAnnotationLinePreview(endX, endY) {
+    const ctx = getAnnotationContext();
+    if (!ctx || !annotationOverlay) return;
+    ctx.clearRect(0, 0, annotationOverlay.width, annotationOverlay.height);
+    drawAnnotationSegment(annotationStartX, annotationStartY, endX, endY, 'line');
+  }
+
+  function commitAnnotationOverlayToImage() {
+    if (!annotationOverlay || !isImageLoaded()) return;
+    if (annotationOverlay.width <= 0 || annotationOverlay.height <= 0) return;
+    const dims = getImageDimensions(preview);
+    if (!dims) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = dims.width;
+    canvas.height = dims.height;
+    ctx.drawImage(preview, 0, 0, dims.width, dims.height);
+    ctx.drawImage(annotationOverlay, 0, 0, canvas.width, canvas.height);
+    hasChanges = true;
+    if (isLayerSessionActive()) {
+      resetLayerState();
+    }
+    preview.src = canvas.toDataURL('image/png');
+    clearAnnotationOverlay();
   }
 
   function startAnimationLoop() {
@@ -1346,19 +1540,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (menuBtn4 && sideMenu4) {
       menuBtn4.classList.toggle('is-open', sideMenu4.style.display !== 'none');
     }
+    if (menuBtn5 && sideMenu5) {
+      menuBtn5.classList.toggle('is-open', sideMenu5.style.display !== 'none');
+    }
   }
 
   menuBtn.addEventListener('click', () => {
+    activeInteractionMode = 'grab';
     toggleToolPanel(sideMenu, 'flex');
     updateSideMenuPositions();
     syncMenuButtonStates();
+    updatePreviewCursor();
+    updateAnnotationOverlayInteractivity();
   });
 
   closeMenuBtn.addEventListener('click', () => {
     sideMenu.style.display = 'none';
+    activeInteractionMode = 'grab';
     saveToolVisibilityPreferences();
     updateSideMenuPositions();
     syncMenuButtonStates();
+    updatePreviewCursor();
+    updateAnnotationOverlayInteractivity();
   });
 
   showBtn.addEventListener('click', () => {
@@ -1428,6 +1631,29 @@ document.addEventListener('DOMContentLoaded', () => {
       saveToolVisibilityPreferences();
       updateSideMenuPositions();
       syncMenuButtonStates();
+    });
+  }
+
+  if (menuBtn5 && sideMenu5) {
+    menuBtn5.addEventListener('click', () => {
+      toggleToolPanel(sideMenu5, 'flex');
+      activeInteractionMode = isPanelVisible(sideMenu5) ? 'annotate' : 'grab';
+      updateSideMenuPositions();
+      syncMenuButtonStates();
+      updatePreviewCursor();
+      updateAnnotationOverlayInteractivity();
+    });
+  }
+
+  if (closeMenu5Btn) {
+    closeMenu5Btn.addEventListener('click', () => {
+      sideMenu5.style.display = 'none';
+      activeInteractionMode = 'grab';
+      saveToolVisibilityPreferences();
+      updateSideMenuPositions();
+      syncMenuButtonStates();
+      updatePreviewCursor();
+      updateAnnotationOverlayInteractivity();
     });
   }
 
@@ -1556,14 +1782,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function updatePreviewCursor() {
     if (!isImageLoaded()) {
       preview.style.cursor = 'default';
+      if (annotationOverlay) annotationOverlay.style.cursor = 'default';
+      return;
+    }
+    if (isAnnotationToolActive()) {
+      preview.style.cursor = 'crosshair';
+      if (annotationOverlay) annotationOverlay.style.cursor = 'crosshair';
       return;
     }
     preview.style.cursor = isDragging ? 'grabbing' : 'grab';
+    if (annotationOverlay) annotationOverlay.style.cursor = isDragging ? 'grabbing' : 'grab';
   }
 
   function setGrabMode(mode, options = {}) {
     const persist = options.persist !== false;
     activeGrabMode = mode === 'layer' ? 'layer' : 'canvas';
+    activeInteractionMode = 'grab';
     if (canvasGrabBtn) {
       canvasGrabBtn.classList.toggle('is-active', activeGrabMode === 'canvas');
     }
@@ -1574,6 +1808,7 @@ document.addEventListener('DOMContentLoaded', () => {
       writeStorageString(GRAB_MODE_STORAGE_KEY, activeGrabMode);
     }
     updatePreviewCursor();
+    updateAnnotationOverlayInteractivity();
   }
 
   function endDrag(pointerId = null) {
@@ -1591,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   preview.addEventListener('pointerdown', (e) => {
-    if (!isImageLoaded() || e.button !== 0) return;
+    if (!isImageLoaded() || e.button !== 0 || isAnnotationToolActive()) return;
     e.preventDefault();
     isDragging = true;
     dragStartX = e.clientX;
@@ -1662,6 +1897,123 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('pointerup', () => {
     endDrag();
   });
+
+  if (annotationOverlay) {
+    annotationOverlay.addEventListener('pointerdown', (e) => {
+      if (!isImageLoaded() || !isAnnotationToolActive() || e.button !== 0) return;
+      const point = getAnnotationPointFromClient(e.clientX, e.clientY);
+      if (!point) return;
+      e.preventDefault();
+      syncAnnotationCanvasDimensions();
+      clearAnnotationOverlay();
+      saveImageState(preview);
+      isAnnotationDrawing = true;
+      annotationStartX = point.x;
+      annotationStartY = point.y;
+      if (activeAnnotationTool !== 'line') {
+        drawAnnotationSegment(point.x, point.y, point.x, point.y, activeAnnotationTool);
+      }
+      if (annotationOverlay.setPointerCapture) {
+        annotationOverlay.setPointerCapture(e.pointerId);
+      }
+    });
+
+    annotationOverlay.addEventListener('pointermove', (e) => {
+      if (!isAnnotationDrawing || !isImageLoaded() || !isAnnotationToolActive()) return;
+      const point = getAnnotationPointFromClient(e.clientX, e.clientY);
+      if (!point) return;
+      if (activeAnnotationTool === 'line') {
+        drawAnnotationLinePreview(point.x, point.y);
+        return;
+      }
+      drawAnnotationSegment(annotationStartX, annotationStartY, point.x, point.y, activeAnnotationTool);
+      annotationStartX = point.x;
+      annotationStartY = point.y;
+    });
+
+    const stopAnnotationDrawing = (pointerId = null) => {
+      if (!isAnnotationDrawing) return;
+      isAnnotationDrawing = false;
+      if (pointerId !== null && annotationOverlay.hasPointerCapture && annotationOverlay.hasPointerCapture(pointerId)) {
+        annotationOverlay.releasePointerCapture(pointerId);
+      }
+      commitAnnotationOverlayToImage();
+    };
+
+    annotationOverlay.addEventListener('pointerup', (e) => {
+      if (isAnnotationDrawing && activeAnnotationTool === 'line') {
+        const point = getAnnotationPointFromClient(e.clientX, e.clientY);
+        if (point) {
+          drawAnnotationLinePreview(point.x, point.y);
+        }
+      }
+      stopAnnotationDrawing(e.pointerId);
+    });
+
+    annotationOverlay.addEventListener('pointercancel', (e) => {
+      stopAnnotationDrawing(e.pointerId);
+    });
+
+    document.addEventListener('pointerup', () => {
+      stopAnnotationDrawing();
+    });
+  }
+
+  if (annotationPenBtn) {
+    annotationPenBtn.addEventListener('click', () => {
+      setAnnotationTool('pen');
+      updateAnnotationOverlayInteractivity();
+    });
+  }
+
+  if (annotationPencilBtn) {
+    annotationPencilBtn.addEventListener('click', () => {
+      setAnnotationTool('pencil');
+      updateAnnotationOverlayInteractivity();
+    });
+  }
+
+  if (annotationBrushBtn) {
+    annotationBrushBtn.addEventListener('click', () => {
+      setAnnotationTool('brush');
+      updateAnnotationOverlayInteractivity();
+    });
+  }
+
+  if (annotationLineBtn) {
+    annotationLineBtn.addEventListener('click', () => {
+      setAnnotationTool('line');
+      updateAnnotationOverlayInteractivity();
+    });
+  }
+
+  if (annotationSizeSlider) {
+    annotationSizeSlider.addEventListener('input', () => {
+      setAnnotationSize(annotationSizeSlider.value);
+    });
+  }
+
+  if (annotationSizeValue) {
+    annotationSizeValue.addEventListener('input', () => {
+      if (annotationSizeValue.value.trim() === '') return;
+      setAnnotationSize(annotationSizeValue.value);
+    });
+    annotationSizeValue.addEventListener('blur', () => {
+      setAnnotationSize(annotationSizeValue.value);
+    });
+  }
+
+  if (annotationSizeResetBtn) {
+    annotationSizeResetBtn.addEventListener('click', () => {
+      setAnnotationSize(DEFAULT_ANNOTATION_SIZE);
+    });
+  }
+
+  if (annotationColorInput) {
+    annotationColorInput.addEventListener('input', () => {
+      setAnnotationColor(annotationColorInput.value);
+    });
+  }
 
   document.addEventListener('keydown', (e) => {
     if (isImageLoaded()) {
@@ -1803,6 +2155,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sideMenu4) {
         sideMenu4.style.top = '';
       }
+
+      if (sideMenu5) {
+        sideMenu5.style.top = '';
+      }
     } catch (err) {
       // silent fail if elements aren't available yet
       // console.warn('updateSideMenuPositions failed', err);
@@ -1823,6 +2179,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSideMenuPositions();
   applyStoredToolVisibilityPreferences();
   syncMenuButtonStates();
+  setAnnotationTool('pen');
+  setAnnotationSize(DEFAULT_ANNOTATION_SIZE);
+  setAnnotationColor(DEFAULT_ANNOTATION_COLOR);
+  syncAnnotationCanvasDimensions();
+  updateAnnotationOverlayInteractivity();
   setGrabMode(readStorageString(GRAB_MODE_STORAGE_KEY, 'canvas'), { persist: false });
   resetLayerState();
   updateRulers();
