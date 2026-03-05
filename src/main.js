@@ -390,11 +390,41 @@ document.addEventListener('DOMContentLoaded', () => {
     dropArea.classList.remove('dragover');
   });
 
+  function extractImageFileFromClipboardData(clipboardData) {
+    if (!clipboardData) return null;
+
+    const items = Array.from(clipboardData.items || []);
+    for (const item of items) {
+      if (item.kind !== 'file') continue;
+      const file = item.getAsFile();
+      if (file && ALLOWED_IMAGE_TYPES.has(file.type)) {
+        return file;
+      }
+    }
+
+    const files = Array.from(clipboardData.files || []);
+    for (const file of files) {
+      if (ALLOWED_IMAGE_TYPES.has(file.type)) {
+        return file;
+      }
+    }
+
+    return null;
+  }
+
+  function isEditablePasteTarget(target) {
+    if (!target || !(target instanceof HTMLElement)) return false;
+    if (target.isContentEditable) return true;
+    if (target.closest('[contenteditable="true"]')) return true;
+    const tagName = target.tagName;
+    return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+  }
+
   function handleImageFile(file, options = {}) {
     // Basic file gatekeeping before creating object URLs.
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      alert('Please drop a valid image file (PNG, JPG, WEBP, GIF, or BMP).');
+      alert('Please use a valid image file (PNG, JPG, WEBP, GIF, or BMP).');
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -578,6 +608,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (files && files.length > 0) {
       handleImageFile(files[0], { appendAsLayer: true });
     }
+  });
+
+  document.addEventListener('paste', (e) => {
+    if (!e.clipboardData) return;
+    if (isEditablePasteTarget(e.target) || isEditablePasteTarget(document.activeElement)) {
+      return;
+    }
+
+    const imageFile = extractImageFileFromClipboardData(e.clipboardData);
+    if (!imageFile) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    handleImageFile(imageFile, { appendAsLayer: true });
   });
 
   function getCanvasBounds() {

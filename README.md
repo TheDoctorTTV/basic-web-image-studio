@@ -1,11 +1,11 @@
 # Basic Web Image Studio
 
 Basic Web Image Studio is a browser-based image editing workspace built with plain HTML, CSS, and JavaScript.  
-It supports drag-and-drop uploads, transform controls (move, scale, rotate, flip), filter actions, undo/redo history, and RGBA/brightness channel adjustments.
+It supports drag-and-drop uploads, clipboard paste uploads, transform controls (move, scale, rotate, flip), filter actions, undo/redo history, and RGBA/brightness channel adjustments.
 
 ## Features
 
-- Drag-and-drop or click-to-upload image import
+- Drag-and-drop, clipboard paste, or click-to-upload image import
 - Transform tools: move, scale, rotate, flip, and recenter
 - Filter tools: invert, grayscale, dark edges, beige, polarization, acrylic, median, sobel
 - Map generation tools: height map and normal map
@@ -39,7 +39,7 @@ basic-web-image-studio/
    cd basic-web-image-studio
    ```
 2. Open `index.html` in your browser.
-3. Drag and drop an image (or click the drop area) to start editing.
+3. Drag and drop an image, paste from clipboard, or click the drop area to start editing.
 
 ## Supported Files and Limits
 
